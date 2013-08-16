@@ -50,12 +50,6 @@ void	server_listen()
     fd_set fds, read_fds;         			// セレクト用集合
     struct timeval t_val;         			// 待ちタイマー値
     
-#ifdef linux
-    pthread_t handle;
-#else
-    HANDLE handle;
-#endif
-    DWORD           id;
     ACCESS_INFO     ac_in;
     // =============================
     // listenソケット生成

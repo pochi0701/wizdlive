@@ -75,8 +75,6 @@ typedef struct  {
     unsigned char	file_timestamp_date[32];	// タイムスタンプ表示用 日付のみ
     unsigned char	file_timestamp_time[32];	// タイムスタンプ表示用 日時のみ
     unsigned char	file_size_string[32];	// ファイルサイズ表示用
-    unsigned char	svi_info_data[SVI_INFO_LENGTH];	// SVI ファイル情報
-    unsigned char	svi_rec_time_data[32];			// SVI録画時間
     unsigned char	tvid_string[16];	// TVID表示用
     unsigned char	vod_string[32];		// vod="0" or vod="playlist"  必要に応じて付く
     int				row_num;		// 行番号
@@ -121,7 +119,6 @@ static int directory_stat(unsigned char *path, FILE_INFO_T *file_info_p, int fil
 static int count_file_num_in_tsv(unsigned char *path);
 static int tsv_stat(unsigned char *path, FILE_INFO_T *file_info_p, int file_num);
 static int file_ignoral_check(char *name, unsigned char *path);
-static int directory_same_check_svi_name(unsigned char *name);
 static void http_filemenu_send(int accept_socket, unsigned char *filemenu_data);
 //static void create_system_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *file_info_p, int file_num, unsigned char *send_filemenu_buf, int buf_size);
 static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *file_info_p, int file_num, unsigned char *send_filemenu_buf, int buf_size);
@@ -333,7 +330,6 @@ void http_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p, int flag_pse
 #define  SKIN_MENU_LINE_IMAGE_FILE_HTML  "line_image.html"
 #define  SKIN_MENU_LINE_DOCUMENT_FILE_HTML "line_document.html"
 #define  SKIN_MENU_LINE_UNKNOWN_FILE_HTML "line_unknown.html"
-#define  SKIN_MENU_LINE_SVI_FILE_HTML  "line_svi_file.html"
 #define  SKIN_MENU_LINE_DIR_HTML    "line_dir.html"
 #define  SKIN_MENU_LINE_PSEUDO_DIR_HTML  "line_pseudo.html"
 #define  SKIN_MENU_TAIL_HTML     "tail.html"
@@ -366,8 +362,6 @@ void http_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p, int flag_pse
 #define  SKIN_KEYWORD_LINE_TVID   "<!--WIZD_INSERT_LINE_TVID-->"   // TVID
 #define  SKIN_KEYWORD_LINE_FILE_VOD  "<!--WIZD_INSERT_LINE_FILE_VOD-->"  // vod="0"  必要に応じて付く。
 #define  SKIN_KEYWORD_LINE_FILE_SIZE  "<!--WIZD_INSERT_LINE_FILE_SIZE-->"  // ファイルサイズ 表示用
-#define  SKIN_KEYWORD_LINE_SVI_INFO  "<!--WIZD_INSERT_LINE_SVI_INFO-->"  // SVIファイルから読んだ情報 表示用
-#define  SKIN_KEYWORD_LINE_SVI_REC_TIME "<!--WIZD_INSERT_LINE_SVI_REC_TIME-->" // SVIファイルの録画時間
 #define  SKIN_KEYWORD_LINE_IMAGE_WIDTH "<!--WIZD_INSERT_LINE_IMAGE_WIDTH-->" // 画像の横幅
 #define  SKIN_KEYWORD_LINE_IMAGE_HEIGHT "<!--WIZD_INSERT_LINE_IMAGE_HEIGHT-->" // 画像の高さ
 #define  SKIN_KEYWORD_SECRET_DIR_LINK "<!--WIZD_INSERT_SECRET_DIR_LINK-->" // 隠しディレクトリ
@@ -459,8 +453,6 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
     int				menu_line_document_skin_malloc_size;
     unsigned char	*menu_line_unknown_skin_p;
     int				menu_line_unknown_skin_malloc_size;
-    unsigned char	*menu_line_svi_skin_p;
-    int				menu_line_svi_skin_malloc_size;
     unsigned char	*menu_line_dir_skin_p;
     int				menu_line_dir_skin_malloc_size;
     unsigned char	*menu_line_pseudo_dir_skin_p;
@@ -482,7 +474,6 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
     SKIN_REPLASE_GLOBAL_DATA_T	*skin_rep_data_global_p;
     SKIN_REPLASE_LINE_DATA_T	*skin_rep_data_line_p;
     int skin_rep_line_malloc_size;
-    unsigned int	rec_time;
     int	count;
     unsigned int	image_width, image_height;
     struct	stat	dir_stat;
@@ -848,74 +839,6 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
             // 拡張子置き換え処理。
             extension_add_rename(skin_rep_data_line_p[count].file_uri_link, sizeof(skin_rep_data_line_p[count].file_uri_link));
             switch (skin_rep_data_line_p[count].menu_file_type) {
-            case TYPE_SVI:
-                // ------------------------------
-                // SVIから情報を引き抜く。
-                // ------------------------------
-                // SVIファイルのフルパス生成
-                strncpy(work_filename, http_recv_info_p->send_filename, sizeof(work_filename) );
-                if ( work_filename[strlen(work_filename)-1] != '/' )
-                {
-                    strncat(work_filename, "/", sizeof(work_filename) - strlen(work_filename) );
-                }
-                strncat(work_filename, file_info_p[i].org_name, sizeof(work_filename) - strlen(work_filename));
-                filename_to_extension(work_filename, work_data, sizeof(work_data));
-                if (strcasecmp(work_data, "svi") != 0) {
-                    cut_after_last_character(work_filename, '.');
-                    strncat(work_filename, ".svi", sizeof(work_filename) - strlen(work_filename));
-                    debug_log_output("extension rename (%s -> svi): %s", work_data, work_filename);
-                }
-                // --------------------------------------------------
-                // sviファイルが見当たらない場合はsv3に変更 0.12f3
-                // --------------------------------------------------
-                if (access((char*)work_filename, O_RDONLY) != 0) {
-                    unsigned char *p = work_filename;
-                    while(*p++);	// 行末を探す
-                    if (*(p-2) == 'i')	// 最後がsviの'i'なら'3'にする
-                    *(p-2) = '3';
-                }
-                // --------------------------------------------------
-                // SVIファイルから情報をゲットして、文字コード変換。
-                // 長さ制限に合わせてCut
-                // ※ EUCに変換 → Cut → MediaWiz文字コードへ変換
-                // --------------------------------------------------
-                if (read_svi_info(work_filename, skin_rep_data_line_p[count].svi_info_data, sizeof(skin_rep_data_line_p[count].svi_info_data),  &rec_time ) == 0) {
-                    if ( strlen(skin_rep_data_line_p[count].svi_info_data) > 0 )
-                    {
-                        convert_language_code(	skin_rep_data_line_p[count].svi_info_data,
-                        work_data,
-                        sizeof(work_data),
-                        CODE_AUTO,
-                        CODE_EUC );
-                        // ()[]の削除フラグチェック
-                        // フラグがTRUEで、ファイルがディレクトリでなければ、括弧を削除する。
-                        if ( global_param.flag_filename_cut_parenthesis_area == TRUE )
-                        {
-                            cut_enclose_words(work_data, sizeof(work_data), "(", ")");
-                            cut_enclose_words(work_data, sizeof(work_data), "[", "]");
-                            debug_log_output("svi_info_data(enclose_words)='%s'\n", work_data);
-                        }
-                        // CUT実行
-                        euc_string_cut_n_length(work_data, global_param.menu_svi_info_length_max);
-                        // MediaWiz文字コードに
-                        convert_language_code(	work_data,
-                        skin_rep_data_line_p[count].svi_info_data,
-                        sizeof(skin_rep_data_line_p[count].svi_info_data),
-                        CODE_AUTO,
-                        global_param.client_language_code);
-                    }
-                    debug_log_output("svi_info_data='%s'\n", skin_rep_data_line_p[count].svi_info_data);
-                    // SVIから読んだ録画時間を、文字列に。
-                    snprintf(skin_rep_data_line_p[count].svi_rec_time_data, sizeof(skin_rep_data_line_p[count].svi_rec_time_data),
-                    "%02d:%02d:%02d", rec_time /3600, (rec_time % 3600) / 60, rec_time % 60 );
-                    skin_rep_data_line_p[count].menu_file_type = TYPE_SVI;
-                } else {
-                    //debug_log_output("no svi");
-                    skin_rep_data_line_p[count].svi_info_data[0] = '\0';
-                    skin_rep_data_line_p[count].svi_rec_time_data[0] = '\0';
-                    skin_rep_data_line_p[count].menu_file_type = TYPE_MOVIE;
-                }
-                /* FALLTHRU */
             case TYPE_MOVIE:
             case TYPE_MUSIC:
                 // 再生可能ファイルカウント
@@ -1220,16 +1143,6 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
         debug_log_output("skin_file_read() error.");
         return;
     }
-    // SVI スキン読み込み
-    strncpy(read_filename, skin_path, sizeof( read_filename) );
-    strncat(read_filename, SKIN_MENU_LINE_SVI_FILE_HTML, sizeof(read_filename) - strlen(read_filename) );
-    debug_log_output("skin: read_filename='%s'", read_filename);
-    menu_line_svi_skin_p = skin_file_read(read_filename, &menu_line_svi_skin_malloc_size );
-    if ( menu_line_svi_skin_p == NULL )
-    {
-        debug_log_output("skin_file_read() error.");
-        return;
-    }
     // =================================
     //  処理開始。
     // =================================
@@ -1259,9 +1172,6 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
         case TYPE_DOCUMENT:
             strncpy(menu_work_p, menu_line_document_skin_p, buf_size );
             break;
-        case TYPE_SVI:
-            strncpy(menu_work_p, menu_line_svi_skin_p, buf_size );
-            break;
         default:
             strncpy(menu_work_p, menu_line_unknown_skin_p, buf_size );
             break;
@@ -1283,7 +1193,6 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
     free( menu_line_image_skin_p );
     free( menu_line_document_skin_p );
     free( menu_line_unknown_skin_p );
-    free( menu_line_svi_skin_p );
     free( menu_line_dir_skin_p );
     free( menu_line_pseudo_dir_skin_p );
     // =======================
@@ -1500,10 +1409,6 @@ static void replace_skin_line_data(unsigned char *menu_work_p, int menu_work_buf
     replace_character(menu_work_p, menu_work_buf_size, SKIN_KEYWORD_LINE_FILE_VOD, skin_rep_data_line_p->vod_string );
     // SKIN_KEYWORD_LINE_FILE_SIZE	ファイルサイズ 表示用
     replace_character(menu_work_p, menu_work_buf_size, SKIN_KEYWORD_LINE_FILE_SIZE,  skin_rep_data_line_p->file_size_string );
-    // SKIN_KEYWORD_LINE_SVI_INFO	SVI情報 表示用
-    replace_character(menu_work_p, menu_work_buf_size, SKIN_KEYWORD_LINE_SVI_INFO,  skin_rep_data_line_p->svi_info_data );
-    // SKIN_KEYWORD_LINE_SVI_INFO	SVI情報 表示用
-    replace_character(menu_work_p, menu_work_buf_size, SKIN_KEYWORD_LINE_SVI_REC_TIME,  skin_rep_data_line_p->svi_rec_time_data );
     // SKIN_KEYWORD_LINE_IMAGE_WIDTH	画像の横幅
     replace_character(menu_work_p, menu_work_buf_size, SKIN_KEYWORD_LINE_IMAGE_WIDTH,  skin_rep_data_line_p->image_width );
     // SKIN_KEYWORD_LINE_IMAGE_HEIGHT	画像の高さ
@@ -1712,15 +1617,9 @@ static int directory_stat(unsigned char *path, FILE_INFO_T *file_info_p, int fil
         // stat() 実行
         memset(&file_stat, 0, sizeof(file_stat));
         result = stat(fullpath_filename, &file_stat);
-        if ( result < 0 )
-        continue;
-        // 対象がディレクトリだった場合、SVIと同一名称ディレクトリチェック。
-        if (( S_ISDIR( file_stat.st_mode ) != 0 ) && ( global_param.flag_hide_same_svi_name_directory == TRUE ))
-        {
-            // チェック実行
-            if ( directory_same_check_svi_name(fullpath_filename) != 0 )
+        if ( result < 0 ){
             continue;
-        }
+	}
         // ファイル名を保存
         if (S_ISDIR( file_stat.st_mode )) {
             snprintf(file_info_p[count].org_name, sizeof(file_info_p[count].org_name), "%s/", dent->d_name);
@@ -1739,12 +1638,6 @@ static int directory_stat(unsigned char *path, FILE_INFO_T *file_info_p, int fil
         file_info_p[count].type = file_stat.st_mode;
         file_info_p[count].size = file_stat.st_size;
         file_info_p[count].time = file_stat.st_mtime;
-        // SVIファイルだったら、file_info_p[count].size を入れ替える。
-        filename_to_extension( fullpath_filename, file_extension, sizeof(file_extension));
-        if (( strcasecmp(file_extension, "svi") ==  0 ) || ( strcasecmp(file_extension, "sv3") ==  0 ))
-        {
-            file_info_p[count].size = svi_file_total_size(fullpath_filename);
-        }
         // vob先頭ファイルチェック v0.12f3
         if ( (global_param.flag_show_first_vob_only == TRUE)
         &&( strcasecmp(file_extension, "vob") == 0 ) ) {
@@ -1945,36 +1838,6 @@ static int file_ignoral_check( char *name, unsigned char *path )
     }
     return ( 0 );
 }
-// ******************************************************************
-// SVIと同一名称ディレクトリチェック。
-// return: 0:OK  -1 無視
-// ******************************************************************
-static int directory_same_check_svi_name( unsigned char *name )
-{
-    char	check_svi_filename[FILENAME_MAX];
-    struct stat		svi_stat;
-    int				result;
-    debug_log_output("directory_same_check_svi_name() start.'%s'", name);
-    // チェックするSVIファイル名生成
-    strncpy( check_svi_filename, name, sizeof(check_svi_filename));
-    strncat( check_svi_filename, ".svi", sizeof(check_svi_filename) - strlen(check_svi_filename) );
-    // --------------------------------------------------
-    // sv3 0.12f3
-    // --------------------------------------------------
-    if (access(check_svi_filename, O_RDONLY) != 0) {
-        char *p = check_svi_filename;
-        while(*p++);	// 行末を探す
-        if (*(p-2) == 'i')	// 最後がsviの'i'
-        *(p-2) = '3';
-    }
-    result = stat(check_svi_filename, &svi_stat);
-    if ( result >= 0 ) // あった？
-    {
-        debug_log_output("check_svi_filename '%s' found!!", check_svi_filename);
-        return ( -1 );
-    }
-    return ( 0 );	// OK
-}
 // **************************************************************************
 //
 // HTTP_OKヘッダを生成して、メニュー画面返信実行
@@ -1996,7 +1859,7 @@ static void http_filemenu_send(int accept_socket, unsigned char *filemenu_data)
     strncat(send_http_header_buf, work_buf, sizeof(send_http_header_buf) - strlen(send_http_header_buf));
     snprintf(work_buf, sizeof(work_buf), HTTP_SERVER_NAME, SERVER_NAME);
     strncat(send_http_header_buf, work_buf, sizeof(send_http_header_buf) - strlen(send_http_header_buf) );
-    snprintf(work_buf, sizeof(work_buf), HTTP_CONTENT_LENGTH, (long long int)strlen(filemenu_data) );
+    snprintf(work_buf, sizeof(work_buf), HTTP_CONTENT_LENGTH, strlen(filemenu_data) );
     strncat(send_http_header_buf, work_buf, sizeof(send_http_header_buf) - strlen(send_http_header_buf) );
     strncat(send_http_header_buf, HTTP_END, sizeof(send_http_header_buf) - strlen(send_http_header_buf));
     send_data_len = strlen(send_http_header_buf);
@@ -2067,8 +1930,7 @@ static void create_all_play_list(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
             continue;
         }
         if ( mime_list[j].menu_file_type != TYPE_MOVIE &&
-        mime_list[j].menu_file_type != TYPE_MUSIC &&
-        mime_list[j].menu_file_type != TYPE_SVI )
+        mime_list[j].menu_file_type != TYPE_MUSIC )
         {
             continue;
         }
@@ -3233,7 +3095,7 @@ static void http_sclist_send(int accept_socket, unsigned char *filemenu_data)
     strncat(send_http_header_buf, work_buf, sizeof(send_http_header_buf) - strlen(send_http_header_buf));
     snprintf(work_buf, sizeof(work_buf), HTTP_SERVER_NAME, SERVER_NAME);
     strncat(send_http_header_buf, work_buf, sizeof(send_http_header_buf) - strlen(send_http_header_buf) );
-    snprintf(work_buf, sizeof(work_buf), HTTP_CONTENT_LENGTH, (long long int)strlen(filemenu_data) );
+    snprintf(work_buf, sizeof(work_buf), HTTP_CONTENT_LENGTH, strlen(filemenu_data) );
     strncat(send_http_header_buf, work_buf, sizeof(send_http_header_buf) - strlen(send_http_header_buf) );
     strncat(send_http_header_buf, HTTP_END, sizeof(send_http_header_buf) - strlen(send_http_header_buf));
     send_data_len = strlen(send_http_header_buf);

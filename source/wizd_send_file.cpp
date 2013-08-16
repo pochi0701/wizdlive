@@ -81,8 +81,6 @@ typedef struct {
 } TRANS;
 static char* sswork=0;
 static char  buffer_name[256]={0};
-static int   end_pos;
-int CacheStart(TRANS* trans,pthread_t& handle);
 //キャッシュ開始
 #ifdef linux
 pthread_t CacheStart2(TRANS* trans,int &tw_fd, int &tr_fd,char* buff,char* filename);
@@ -195,11 +193,11 @@ static int http_file_send(int accept_socket, unsigned char *filename, off_t cont
 *
 */
 int copy_descriptors(int in_fd,
-int out_fd,
-off_t content_length,
-JOINT_FILE_INFO_T *joint_file_info_p,
-char* infilename,
-off_t range_start_pos)
+                     int out_fd,
+                     off_t content_length,
+                     JOINT_FILE_INFO_T *joint_file_info_p,
+                     char* infilename,
+                     off_t range_start_pos)
 {
     //int i;
     unsigned char buffp1[BUFFER_ATOM];
@@ -531,218 +529,6 @@ off_t range_start_pos)
             // パラメータがNULLの場合には1ファイルのみの処理とする
             return 1;               // これで終了
         }
-    }
-    int copy_descriptors2(int in_fd,
-    int out_fd,
-    off_t content_length,
-    JOINT_FILE_INFO_T *joint_file_info_p,
-    char* infilename,
-    off_t range_start_pos)
-    {
-        //int i;
-        unsigned char buffp1[BUFFER_ATOM];
-        char filename[256];
-        int tw_fd = 0;                      //一時書き込み用ファイルディスクリプタ
-        int tr_fd;                  //一時読み込み用ファイルディスクリプタ
-        int len;
-        //int count=0;
-        int buf_len = 0;
-        int buf_ptr = 0;
-        int flag_finish = 0;
-        int flag_exhost = 0;
-        off_t readLength = 0;
-        int writeLength = 0;
-        int transmode = 0;
-        TRANS trans;
-    char buff[1024]={0};
-        int flag_abort = 0;
-        // 2004/07/12 Add start
-        /* スレッド用パラメータ */
-#ifdef linux
-        pthread_t  handle=0;
-#else
-#endif
-        //    DWORD id;
-        int rbgn_time = -1;
-        int wbgn_time = -1;
-        int thread_flag = 0;
-        //見ている
-        trans.flag_abort  = &flag_abort;
-        trans.flag_finish = &flag_finish;
-        trans.flag_exhost = &flag_exhost;
-        trans.readLength = &readLength;
-        trans.content_length = &content_length;
-        trans.joint_file_info_p = joint_file_info_p;
-        trans.in_fd = &in_fd;
-        trans.tw_fd = &tw_fd;
-        trans.server= infilename;
-        trans.range_start_pos = &range_start_pos;
-        //memset( buff, 0, sizeof( buff ) );
-        //::GetCurrentDirectory( sizeof( buff ), buff );
-        strcpy( buff, "/opt/sybhttpd/localhost.drives/HARD_DISK/wizdlive/work" );
-        //2004.10.03 カレントディレクトリをとってはいけない
-        sprintf( filename, "%s%s_wizd_temp%d.dat" , buff , DELIMITER, getpid() );
-#ifdef linux
-        //シグナルハンドラ
-        if( signal(SIGPIPE,SIG_IGN) == SIG_ERR ){
-            exit(1);
-        }
-        // ブロックモードの設定
-        set_blocking_mode(in_fd, 0);    /* blocking */
-        set_blocking_mode(out_fd, 0);   /* blocking */
-#else
-#endif
-        //ファイル転送のとき
-        if( (long)joint_file_info_p == -1 ){
-            //              printf("\nfile");
-            readLength = content_length;
-            flag_finish = 1;
-            tr_fd = in_fd;
-            transmode = 2;
-            //小さいデータ転送のとき
-        }else if( content_length < BUFFER_ATOM*2 ||
-        strcmp(ExtractFileExtension((unsigned char*)trans.server),"jpg") == 0 ||
-        strcmp(ExtractFileExtension((unsigned char*)trans.server),"png") == 0){
-            readLength = content_length;
-            flag_finish = 1;
-            tr_fd = in_fd;
-            transmode = 1;
-        }else{
-            thread_flag = 1;
-            handle = CacheStart2(&trans,tw_fd,tr_fd,buff,filename);
-        }
-        // ================
-        // 実体転送開始
-        // ================
-        //終了フラグが立つまでループ
-        while ( (! flag_abort) && loop_flag){
-            if (readLength > 0 ){
-                wbgn_time = 0;
-                for(;;){
-                    //前回読み込んだバッファを吐き出す
-                    if( buf_len > 0 ){
-                        len = send( out_fd , (buffp1 + buf_ptr) , buf_len , 0 );
-                        if( len == 0 ){
-                            //Sleep(100);
-                            //指定時刻書き込めなかったら落ちる
-                            if( time( NULL ) > rbgn_time ){
-                                flag_abort = 1;
-                                break;
-                            }
-                            // 2004/08/23 Add end
-                            continue;
-                        }
-                        //SIGPIPEがきたら終わる
-                        if( SERROR( len ) ){
-                            flag_abort = 1;
-                            break;
-                        }else{
-                            buf_len -= len;
-                            buf_ptr += len;
-                            writeLength += len;
-                            //開始時刻を３０秒後に設定
-                            wbgn_time = 0;
-                            rbgn_time = time( NULL ) + NO_RESPONSE_TIMEOUT;
-                        }
-                        //バッファを読み込む
-                    }else if (readLength > writeLength ){
-                        buf_ptr = 0;
-                        buf_len = 0;
-                        len = readLength-writeLength;
-                        if( len > BUFFER_ATOM ){
-                            len = BUFFER_ATOM;
-                        }
-                        // キャッシュか否かでデータの受け取りが違う
-                        if( thread_flag == 1 ){
-                            len = read( tr_fd , buffp1 , len);
-                        }else{
-                            len = recv( tr_fd , buffp1 , len , 0 );
-                        }
-                        //読めなかったら終わるか？
-                        //ここは一応なさそうだが、あったら必ずエラー
-                        if( len == 0 || SERROR( len )){
-                            flag_abort = 1;
-                            break;
-                        }
-                        buf_len = len;
-                        //終わり 読み込むものがなくて、バッファもない。
-                    }else{
-                        if( flag_finish == 1 ){
-                            flag_abort = 1;
-                        }
-                        Sleep(5);
-                        break;
-                    }
-                }
-                //サイズ０で読み込みが終わってたら終わり
-                //ソケット直結か、読み込み終わりの場合
-            }else if ( transmode == 2 || flag_exhost ){
-                break;
-                //寝るか
-            }else{
-                Sleep(5);
-                wbgn_time += 5;
-                //タイムアウト５秒
-                if( wbgn_time >= 5000 ){
-                    break;
-                }
-            }
-        }
-        //スレッドは作成されているのでjoinする
-        //transmode=0 ：ファイルバッファリング
-        //transmode=1 ：そのまま読み書き
-        //transmode=2 ：直結(クローズは接続先でしてもらう）
-        switch( transmode ){
-        case 0:
-            // 2004/08/24 Add start
-#ifdef linux
-            pthread_join (handle, NULL);
-#else
-            WaitForSingleObject( handle , INFINITE );
-            CloseHandle( handle );
-#endif
-            close( tw_fd );
-            close( tr_fd );
-            // 2004/08/24 Add end
-            //スレッド終了対策
-            //printf( "unlink %s\n", filename );
-            unlink( filename );
-            break;
-        case 1:
-            //close( tw_fd );
-            //close( tr_fd );
-            break;
-        default:
-            break;
-        }
-        //printf("finish\n");
-        // 正常終了
-        return 0;
-    }
-    //キャッシュ開始
-    int CacheStart(TRANS* trans,pthread_t& handle)
-    {
-        //HANDLE handle;
-        DWORD id;
-        //バッファにあった
-        if( strcmp(buffer_name,trans->server) == 0 ){
-            return 0;
-        }
-        free(sswork);
-        sswork = 0;
-        //名前登録
-        strcpy(buffer_name,trans->server);
-        //
-        end_pos=0;
-#ifdef linux
-        id = pthread_create(&handle,
-        NULL,//pthread_attr_default,
-        read_buffer,
-        (void*)trans);
-#else
-        CreateThread( 0 , 0 , (LPTHREAD_START_ROUTINE)read_buffer , (void*)trans , 0 , &id );
-#endif
-        return 1;
     }
     //キャッシュ開始
 #ifdef linux

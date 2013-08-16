@@ -151,23 +151,7 @@ void 	server_http_process(int accept_socket)
             debug_log_output("HTTP response end!\n");
         }
     }else if ( result == 2 ){
-        // ----------------------------------------
-        // SVIファイル（；´Д｀）
-        // SVIファイル処理してデータを返信
-        // ----------------------------------------
-        // actionに、SinglePlayが指示されている？
-        if ( strcasecmp(http_recv_info.action, "SinglePlay" ) == 0){
-            // ----------------------------------------
-            // Musicファイル 単独プレイ
-            // ----------------------------------------
-            debug_log_output("Single Play start!(SVI)\n");
-            http_music_single_play(accept_socket, &http_recv_info);
-            debug_log_output("Single Play end!(SVI)\n");
-        }else{ // アクションに指定無し。
-            debug_log_output("HTTP joint file response start!\n");
-            http_joint_file_response(accept_socket, &http_recv_info);
-            debug_log_output("HTTP joint file response end!\n");
-        }
+        // SVIファイル対応削除
     }else if ( result == 3 ){
         // ---------------------------------------------
         // plw/uplファイル(`･ω･´)
@@ -421,7 +405,6 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
 //
 // ret		 0:実体
 //			 1:ディレクトリ
-//			 2:SVIファイル（；´Д｀）
 //			 3:plw/uplファイル(`･ω･´)
 //			 4:tsvファイル(´・ω・`)
 //			 5:VOBファイル
@@ -464,13 +447,9 @@ static int http_file_check( HTTP_RECV_INFO *http_recv_info_p)
         debug_log_output("http_recv_info_p->send_filename='%s', file_extension='%s'\n", http_recv_info_p->send_filename, file_extension);
         // 拡張子から、mime_typeを導く。
         check_file_extension_to_mime_type(file_extension, http_recv_info_p->mime_type,  sizeof(http_recv_info_p->mime_type));
-        // SVIファイルと実体ファイルで分岐
-        if (( strcasecmp(file_extension, "svi") == 0 ) || ( strcasecmp(file_extension, "sv3") == 0 )){
-            return ( 2 );	// sviファイル
-        }
-        else if (( strcasecmp(file_extension, "plw") == 0  ) ||
-        ( strcasecmp(file_extension, "m3u") == 0  ) ||
-        ( strcasecmp(file_extension, "upl") == 0  ) ){
+        if (( strcasecmp(file_extension, "plw") == 0  ) ||
+            ( strcasecmp(file_extension, "m3u") == 0  ) ||
+            ( strcasecmp(file_extension, "upl") == 0  ) ){
             return ( 3 );	// plw/upl ファイル
         }else if ( strcasecmp(file_extension, "vob") == 0  ){
             return ( 5 );	// vobファイル

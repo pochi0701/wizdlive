@@ -66,10 +66,7 @@
 // execute path for CGI
 #define	DEFAULT_PATH	"/usr/bin:/bin:/usr/sbin:/usr/bin"
 
-#define	DEFAULT_FLAG_HIDE_SAME_SVI_NAME_DIRECTORY	FALSE
-
 #define	DEFAULT_MENU_FILENAME_LENGTH_MAX		FILENAME_MAX
-#define	DEFAULT_MENU_SVI_INFO_LENGTH_MAX		FILENAME_MAX
 
 #define	DEFAULT_FLAG_UNKNOWN_EXTENSION_FLAG_HIDE	TRUE
 
@@ -128,7 +125,7 @@
 #define	HTTP_OK 			"HTTP/1.0 200 OK\r\n"
 #define	HTTP_NOT_FOUND 		"HTTP/1.0 404 File Not Found\r\n"
 #define HTTP_NOT_FOUND1         "HTTP/1.x 404 Not Found"
-#define HTTP_CONTENT_LENGTH	"Content-Length: %llu\r\n"
+#define HTTP_CONTENT_LENGTH	"Content-Length: %lu\r\n"
 #define	HTTP_ACCEPT_RANGES	"Accept-Ranges: bytes\r\n"
 #define HTTP_CONTENT_TYPE 	"Content-Type: %s\r\n"
 #define	HTTP_SERVER_NAME	"Server: %s\r\n"
@@ -157,28 +154,14 @@
 #define		TYPE_MUSIC				(3)
 #define		TYPE_IMAGE				(4)
 #define		TYPE_DOCUMENT			(5)
-#define		TYPE_SVI				(6)
 #define		TYPE_PLAYLIST			(7)
 #define		TYPE_PSEUDO_DIR			(8)
 #define		TYPE_MUSICLIST			(9)
 
-
-
 // SVI_INFO
 
-#define	SVI_FILENAME_OFFSET		(4368)
-#define	SVI_FILENAME_LENGTH		(255)
-
-#define	SVI_INFO_OFFSET			(272)
-#define	SVI_INFO_LENGTH			(1024)
-
-#define	SVI_TOTAL_SIZE_OFFSET	(4984)
-#define	SVI_TOTAL_SIZE_LENGTH	(5)
-
-#define	SVI_REC_TIME_OFFSET		(4972)
-#define	SVI_REC_TIME_LENGTH		(2)
-
-
+#define SVI_FILENAME_OFFSET             (4368)
+#define SVI_FILENAME_LENGTH             (255)
 
 // ==========================================================================
 // MIMEリスト保存用構造体
@@ -320,17 +303,11 @@ typedef struct {
 	// 表示ファイル名で、親ディレクトリ名と同一文字列を削除するかフラグ
 	char	flag_filename_cut_same_directory_name;
 
-	//  SVIファイルと同一の名前を持つディレクトリを隠すかフラグ
-	char	flag_hide_same_svi_name_directory;
-
 	// Allplayでの文字化け防止(ファイル名の全半角変換)するかフラグ
 	char	flag_allplay_filelist_adjust;
 
 	// Windows用にプレイリスト内のファイル名を調整するかフラグ
 	char	flag_filename_adjustment_for_windows;
-
-	// SVIファイル情報表示のMAX長
-	int		menu_svi_info_length_max;
 
 	// ----------------------
 	// 拡張系
@@ -410,7 +387,7 @@ typedef struct {
 
 
 // ****************************************
-// JOINTファイル情報 (SVI/VOB解析情報)
+// JOINTファイル情報 (VOB解析情報)
 // ****************************************
 typedef struct {
 	unsigned int		file_num;		// 全ファイル数
@@ -476,13 +453,6 @@ extern void server_http_process(int accept_socket);
 extern int copy_descriptors(int in_fd,int out_fd,off_t content_length,JOINT_FILE_INFO_T *joint_file_info_p,char* infilename,off_t range_start_pos);
 extern int copy_descriptors2(int, int, off_t, JOINT_FILE_INFO_T*, char*, off_t);
 //extern int copy_descriptors(int in_fd, int out_fd, off_t content_length, JOINT_FILE_INFO_T *joint_file_info_p);
-
-
-// SVIファイル解析＆返信
-extern int http_joint_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p );
-
-extern int read_svi_info(unsigned char *svi_filename, unsigned char *svi_info, int svi_info_size, unsigned int *rec_time );
-extern u_int64_t svi_file_total_size(unsigned char *svi_filename);
 
 extern int analyze_vob_file(unsigned char *vob_filename, JOINT_FILE_INFO_T *joint_file_info_p );
 

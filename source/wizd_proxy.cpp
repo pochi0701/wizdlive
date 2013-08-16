@@ -42,7 +42,6 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     int line = 0;
     int i;
     int content_is_html = 0;
-    int content_not_found = 0;
     int flag_pc = http_recv_info_p->flag_pc;
     p_uri_string = http_recv_info_p->request_uri;
     if (!strncmp(p_uri_string, "/-.-playlist.pls?", 17)) {
@@ -108,9 +107,9 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     p += sprintf(p, "Connection: close\r\n");
     if (http_recv_info_p->range_start_pos) {
         p += sprintf(p, "Range: bytes=");
-        p += sprintf(p, "%llu-", http_recv_info_p->range_start_pos);
+        p += sprintf(p, "%lu-", http_recv_info_p->range_start_pos);
         if (http_recv_info_p->range_end_pos) {
-            p += sprintf(p, "%llu", http_recv_info_p->range_end_pos);
+            p += sprintf(p, "%lu", http_recv_info_p->range_end_pos);
         }
         p += sprintf(p, "\r\n");
     }
@@ -174,7 +173,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         unsigned char *new_p, *r;
         unsigned char work_buf[LINE_BUF_SIZE + 10];
         unsigned char work_buf2[LINE_BUF_SIZE * 2];
-        char *link_pattern = "<A HREF=";
+        char *link_pattern = (char*)"<A HREF=";
         int flag_conv_html_code = 1;
         for (i=0; i<line; i++) {
             //長さは不定なので送らない
@@ -224,7 +223,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             *   面倒なのでたいした置換はしていない
             *   惰性で書いたので汚い。だれか修正して。
             */
-            link_pattern = "<A HREF=";
+            link_pattern = (char*)"<A HREF=";
             while ((new_p = (unsigned char*)my_strcasestr((char*)p, link_pattern)) != NULL) {
                 int l = new_p - p + strlen(link_pattern);
                 char *tmp;
@@ -276,7 +275,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             p = work_buf2;
             q = work_buf;
             memset(q, 0, sizeof(work_buf));
-            link_pattern = "SRC=";
+            link_pattern = (char*)"SRC=";
             while ((new_p = (unsigned char*)my_strcasestr((char*)p, link_pattern)) != NULL) {
                 int l = new_p - p + strlen(link_pattern);
                 strncpy(q, p, l);

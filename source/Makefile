@@ -29,7 +29,6 @@ wizdlive:	Makefile		\
 	wizd_http.cpp	\
 	wizd_menu.cpp	\
 	wizd_send_file.cpp	\
-	wizd_send_svi.cpp	\
 	wizd_send_vob.cpp	\
 	wizd_proxy.cpp	\
 	wizd_base64.cpp	\
@@ -49,7 +48,6 @@ wizdlive:	Makefile		\
 		wizd_http.cpp	\
 		wizd_menu.cpp	\
 		wizd_send_file.cpp	\
-		wizd_send_svi.cpp	\
 		wizd_send_vob.cpp	\
 		wizd_proxy.cpp	\
 		wizd_base64.cpp	\

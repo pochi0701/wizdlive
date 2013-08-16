@@ -38,8 +38,6 @@ MIME_LIST_T mime_list[] = {
 {(unsigned char*)"image/png"      ,(unsigned char*)"png"        ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
 {(unsigned char*)"video/mpeg"     ,(unsigned char*)"mpeg"       ,   TYPE_STREAM     ,   TYPE_MOVIE      },
 {(unsigned char*)"video/mpeg"     ,(unsigned char*)"mpg"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"svi"        ,   TYPE_STREAM     ,   TYPE_SVI        },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"sv3"        ,   TYPE_STREAM     ,   TYPE_SVI        },
 {(unsigned char*)"video/mpeg"     ,(unsigned char*)"m2p"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
 {(unsigned char*)"video/mpeg"     ,(unsigned char*)"hnl"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
 {(unsigned char*)"video/x-msvideo",(unsigned char*)"avi"          ,       TYPE_STREAM     ,       TYPE_MOVIE      },
@@ -73,8 +71,6 @@ MIME_LIST_T mime_list[] = {
 EXTENSION_CONVERT_LIST_T extension_convert_list[] = {
 //  {org_extension  ,   rename_extension    }
 {(unsigned char*)"m2p"           ,   (unsigned char*)"mpg"            },
-{(unsigned char*)"svi"           ,   (unsigned char*)"mpg"            },
-{(unsigned char*)"sv3"           ,   (unsigned char*)"mpg"            },
 {(unsigned char*)"hnl"           ,   (unsigned char*)"mpg"            },
 { NULL, NULL }
 };
@@ -142,10 +138,6 @@ void global_param_init(void)
     global_param.flag_filename_cut_same_directory_name = DEFAULT_FLAG_FILENAME_CUT_SAME_DIRECTORY_NAME;
     // Allplayでの文字化け防止(ファイル名の全半角変換)するかフラグ
     global_param.flag_allplay_filelist_adjust = DEFAULT_FLAG_ALLPLAY_FILELIST_ADJUST;
-    //  SVIファイルと同一の名前を持つディレクトリを隠すかフラグ
-    global_param.flag_hide_same_svi_name_directory  = DEFAULT_FLAG_HIDE_SAME_SVI_NAME_DIRECTORY;
-    // SVIファイル情報表示のMAX長
-    global_param.menu_svi_info_length_max = DEFAULT_MENU_SVI_INFO_LENGTH_MAX;
     // Windows用にプレイリスト内のファイル名を調整するかフラグ
     global_param.flag_filename_adjustment_for_windows = DEFAULT_FLAG_FILENAME_ADJUSTMENT_FOR_WINDOWS;
     // CGIスクリプトの実行を許可するかフラグ
@@ -217,11 +209,6 @@ void skin_config_file_read(unsigned char *skin_conf_filename)
                 if ( strcasecmp("menu_font_metric_string", key) == 0 )
                 {
                     strncpy(global_param.menu_font_metric_string, value, sizeof(global_param.menu_font_metric_string));
-                }
-                // menu_svi_info_length_max
-                if ( strcasecmp("menu_svi_info_length_max", key) == 0 )
-                {
-                    global_param.menu_svi_info_length_max = atoi(value);
                 }
             }
         }
@@ -415,19 +402,6 @@ void config_file_read(void)
                 if ( strcasecmp("menu_filename_length_max", key) == 0 )
                 {
                     global_param.menu_filename_length_max = atoi(value);
-                }
-                //  flag_hide_same_svi_name_directory
-                if ( strcasecmp("flag_hide_same_svi_name_directory", key) == 0 )
-                {
-                    if (strcasecmp(value ,"true") == 0 )
-                    global_param.flag_hide_same_svi_name_directory = TRUE;
-                    else if (strcasecmp(value ,"false") == 0 )
-                    global_param.flag_hide_same_svi_name_directory = FALSE;
-                }
-                // menu_svi_info_length_max
-                if ( strcasecmp("menu_svi_info_length_max", key) == 0 )
-                {
-                    global_param.menu_svi_info_length_max = atoi(value);
                 }
                 // flag_decode_samba_hex_and_cap
                 if ( strcasecmp("flag_decode_samba_hex_and_cap", key) == 0 )

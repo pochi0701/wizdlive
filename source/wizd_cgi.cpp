@@ -57,7 +57,7 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     }
     query_string = strchr(script_name, '?');
     if (query_string == NULL) {
-        query_string = "";
+        query_string = (char*)"";
     } else {
         *query_string++ = '\0';
     }
