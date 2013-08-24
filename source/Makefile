@@ -17,7 +17,7 @@ CFLAGS= -Wall -Dlinux -D_DEBUG
 #CFLAGS+=-mips2
 #LDFLAGS=-L/usr/local/mipsel-linux-uclibc/lib -L/usr/local/mipsel-linux-uclibc/mipsel-linux-uclibc/lib
 #LIBS=-lpthread -lgcc
-LIBS=-lpthread 
+#LIBS=-lpthread 
 
 all:	wizdlive
 

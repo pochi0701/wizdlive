@@ -201,7 +201,7 @@ void	server_detect()
         global_param.server_port 			);
         snprintf(work_buf, sizeof(work_buf), "User-Agent: %s\r\n", SERVER_NAME);
         strncat(send_buf, work_buf, sizeof(send_buf) - strlen(send_buf));
-        snprintf(work_buf, sizeof(work_buf), "Host: %s:%d\r\n", inet_ntoa(ssdp_client_addr.sin_addr), ntohs(ssdp_client_addr.sin_port) );
+        snprintf(work_buf, sizeof(work_buf), "iHost: %s:%d\r\n", inet_ntoa(ssdp_client_addr.sin_addr), ntohs(ssdp_client_addr.sin_port) );
         strncat(send_buf, work_buf, sizeof(send_buf) - strlen(send_buf));
         strncat(send_buf, "\r\n", sizeof(send_buf) - strlen(send_buf));
         debug_log_output("%s", send_buf);

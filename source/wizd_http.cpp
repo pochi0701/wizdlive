@@ -188,6 +188,12 @@ void 	server_http_process(int accept_socket)
         debug_log_output("HTTP CGI response end!\n");
     }else{
         // ----------------------------------------
+        // ディレクトリ 内にindex.html or index.htm or index.cgi があったら、そちらを表示する。
+        // ----------------------------------------
+        if( http_index( accept_socket , (unsigned char*)http_recv_info.send_filename ) ){
+            return;
+        }
+        // ----------------------------------------
         // ディレクトリ
         // ----------------------------------------
         // actionに、OptionMenuが指示されている？
@@ -532,7 +538,7 @@ int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max)
     line_len = 0;
     // １行受信実行
     while ( 1 ){
-        recv_len = recv(accept_socket, &byte_buf, 1, 0);
+        recv_len = read(accept_socket, &byte_buf, 1);
         if ( recv_len != 1 ){ // 受信失敗チェック
             //debug_log_output("line_receive: read_len == -1");
             return ( -1 );

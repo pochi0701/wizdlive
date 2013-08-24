@@ -10,7 +10,6 @@
 //	すべて自己責任でおながいしまつ。
 //  このソフトについてVertexLinkに問い合わせないでください。
 // ==========================================================================
-#include  <sys/types.h>
 #include  <ctype.h>
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -21,13 +20,13 @@
 #include  <sys/stat.h>
 #include  <errno.h>
 #include  <sys/types.h>
+#include  <sys/time.h>
 #include  <fcntl.h>
 #include  <unistd.h>
 #include  "wizd.h"
 #include  "wizd_tools.h"
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <sys/types.h>
 #include <netdb.h>
 static unsigned char		debug_log_filename[FILENAME_MAX];	// デバッグログ出力ファイル名(フルパス)
 static unsigned char		debug_log_initialize_flag  = (1);	// デバッグログ初期化フラグ
@@ -434,7 +433,12 @@ void    cut_first_character(unsigned char *sentence, unsigned char cut_char)
     }
     // sentence書き換え
     if( p != sentence ){
-        strcpy((char*)sentence, (char*)p);
+        while( *p ){
+          *sentence++ = *p++;
+        }
+        *sentence = *p;
+        //string corupped bug.
+        //strcpy((char*)sentence, (char*)p);
     }
     return;
 #else
@@ -990,55 +994,67 @@ void debug_log_initialize(const unsigned char *set_debug_log_filename)
 //*************************************************
 void debug_log_output(const char *fmt, ...)
 {
-    FILE	*fp;
-    unsigned char	buf[1024*5+1];
-    unsigned char	work_buf[1024*4+1];
-    unsigned char	date_and_time[32];
-    unsigned char	replace_date_and_time[48];
-    va_list 	arg;
-    int		len;
+#ifdef _DEBUG
+    FILE        *fp;
+    unsigned char       buf[1024*5+1]={0};
+    unsigned char       work_buf[1024*4+1]={0};
+    unsigned char       date_and_time[32];
+    unsigned char       replace_date_and_time[48]={0};
+    struct timeval tv;
+    //static __int64 last;
+    va_list     arg;
+    int         len;
     // =========================================
     // デバッグログ 初期化フラグをチェック
     // =========================================
-    if (debug_log_initialize_flag != 0 )
-    return;
+    if (debug_log_initialize_flag != 0 ){
+        return;
+    }
     // =========================================
     // Debug出力文字列生成。
     // 行頭に、date_and_time を挿入しておく
     // =========================================
-    memset(buf, '\0', sizeof(buf));
-    memset(work_buf, '\0', sizeof(work_buf));
+    //memset(buf, '\0', sizeof(buf));
+    //memset(work_buf, '\0', sizeof(work_buf));
     // 引数で与えられた文字列を展開。
     va_start(arg, fmt);
     vsnprintf((char*)work_buf, sizeof(work_buf), fmt, arg);
     va_end(arg);
     // work_bufの一番最後に'\n'がついていたら削除。
-    len = strlen(work_buf);
-    if (work_buf[len-1] == '\n')
-    {
+    len = strlen((char*)work_buf);
+    if (len > 0 && work_buf[len-1] == '\n'){
         work_buf[len-1] = '\0';
     }
     // 挿入用文字列生成( "\ndate_and_time" になる)
     make_datetime_string(date_and_time);
-    snprintf(replace_date_and_time, sizeof(replace_date_and_time), "\n%s[%d] ", date_and_time, getpid() );
+    gettimeofday(&tv,NULL);
+    snprintf((char*)replace_date_and_time, sizeof(replace_date_and_time), "\n%s.%06d[%d] ", date_and_time, (int)tv.tv_usec, getpid() );
+
+
     // 出力文字列生成開始。
-    snprintf(buf, sizeof(buf), "%s[%d] %s", date_and_time, getpid(), work_buf);
-    replace_character(buf, (unsigned char*)"\n", replace_date_and_time);	// \nの前にdate_and_timeを挿入
+    //__int64 num;
+    //QueryPerformanceCounter((LARGE_INTEGER*)&num);
+    snprintf((char*)buf, sizeof(buf), "%s.%06d[%d] %s", date_and_time, (int)tv.tv_usec, getpid(), work_buf);
+    //last = num;
+    replace_character(buf, (unsigned char*)"\n", replace_date_and_time); // \nの前にdate_and_timeを挿入
     // 一番最後に'\n'をつける。
-    strncat(buf, "\n", sizeof(buf)-strlen(buf) );
+    strncat((char*)buf, "\n", sizeof(buf)-strlen((char*)buf) );
     // =====================
     // ログファイル出力
     // =====================
     // ファイルオープン（追記モード)
     fp = fopen((char*)debug_log_filename, "a");
-    if ( fp == NULL )
-    return;
+    if ( fp == NULL ){
+        return;
+    }
     // 出力
-    fwrite(buf, 1, strlen(buf), fp );	// メッセージ実体を出力
-    fflush(fp);
+    fwrite(buf, 1, strlen((char*)buf), fp );    // メッセージ実体を出力
     // ファイルクローズ
     fclose( fp );
     return;
+#else
+    IGNORE_PARAMETER(fmt);
+#endif
 }
 // **************************************************************************
 // 拡張子変更処理。追加用。

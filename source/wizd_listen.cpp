@@ -27,7 +27,6 @@
 #include "wizd.h"
 int volatile child_count = 0;
 #define MAX_CHILD_COUNT (global_param.max_child_count)
-void* thread_process(void *arg);
 typedef struct {
     SOCKET                  accept_socket;      // SOCKET
     unsigned char           *access_host;       // アクセスしてきたIP
@@ -105,13 +104,13 @@ void	server_listen()
         // ====================
         // Accept待ち.
         // ====================
-        if (MAX_CHILD_COUNT > 0 && child_count >= MAX_CHILD_COUNT) {
-            debug_log_output("Waiting for a child_count is going down... "
-            "%d / %d\n", child_count, MAX_CHILD_COUNT);
-            while (MAX_CHILD_COUNT > 0 && child_count >= MAX_CHILD_COUNT) {
-                sleep(1000);
-            }
-        }
+        //if (MAX_CHILD_COUNT > 0 && child_count >= MAX_CHILD_COUNT) {
+        //    debug_log_output("Waiting for a child_count is going down... "
+        //    "%d / %d\n", child_count, MAX_CHILD_COUNT);
+        //    while (MAX_CHILD_COUNT > 0 && child_count >= MAX_CHILD_COUNT) {
+        //        sleep(1000);
+        //    }
+        //}
         t_val.tv_sec = 10;
         t_val.tv_usec = 0;
         memcpy (&fds, &read_fds, sizeof (fd_set));
@@ -122,7 +121,7 @@ void	server_listen()
            debug_log_output("select timeout. ret=%d\n", accept_socket);
            continue;
         }
-        debug_log_output("Waiting for a new client...");
+        //debug_log_output("Waiting for a new client...");
         accept_socket = accept(listen_socket, (struct sockaddr *)&caddr, &caddr_len);
         if ( accept_socket < 0 ) // accept失敗チェック
         {
@@ -218,11 +217,10 @@ void server_listen_main(ACCESS_INFO* ac_in)
         close(accept_socket);     // Socketクローズ
     }else{
         // HTTP鯖として、仕事実行
-        //      server_http_process(accept_socket , access_host);
         server_http_process(accept_socket);// , access_host , client_addr_str );
+        close(accept_socket);
         debug_log_output("HTTP process end.\n");
         debug_log_output("=============================================================\n");
-        close(accept_socket);
     }
     return;
 }

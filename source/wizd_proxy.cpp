@@ -313,9 +313,8 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             copy_descriptors(sock, accept_socket,
                             (off_t)content_length,
                             NULL ,
-                            (char*)http_recv_info_p->recv_uri,
+                            //(char*)http_recv_info_p->recv_uri,
                             http_recv_info_p->range_start_pos);
-            //copy_descriptors(sock, accept_socket, content_length, NULL);
         }
     }
     close(sock);

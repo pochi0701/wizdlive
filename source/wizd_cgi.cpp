@@ -145,7 +145,6 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         if (chdir((char*)next_cwd) != 0) {
             debug_log_output("chdir failed. err = %s", strerror(errno));
         }
-        strcpy( script_filename,"/home/kanazawa/wizdlive20130809/test.php");
         if (execl((char*)script_filename, script_exec_name, NULL) < 0) {
             debug_log_output("CGI EXEC ERROR. "
             "script = '%s', argv[0] = '%s', err = %s"
@@ -159,6 +158,6 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     }
     // parent
     close(pfd[1]);
-    //copy_descriptors(pfd[0], accept_socket, 0, NULL);
+    copy_descriptors(pfd[0], accept_socket, 0, NULL,0);
     return 0;
 }

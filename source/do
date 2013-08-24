@@ -1,0 +1,6 @@
+killall wizdlive
+rm ../../wizd_debug.log
+cd ..
+./wizdlive
+cd source
+

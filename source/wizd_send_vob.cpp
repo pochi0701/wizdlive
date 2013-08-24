@@ -165,7 +165,7 @@ static int http_vob_file_send(int	accept_socket, JOINT_FILE_INFO_T *joint_file_i
         close(fd);
         return ( -1 );
     }
-    //copy_descriptors(fd, accept_socket, content_length, joint_file_info_p);
+    copy_descriptors(fd, accept_socket, content_length, joint_file_info_p,0);
     // 正常終了
     return 0;
 }

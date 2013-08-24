@@ -28,7 +28,8 @@
 #include "wizd.h"
 
 static int http_file_send(int accept_socket, unsigned char *filename, off_t content_length, off_t range_start_pos );
-
+// 2004/08/13 Update end
+static int next_file(int *in_fd_p, JOINT_FILE_INFO_T *joint_file_info_p);
 
 // **************************************************************************
 // ファイル実体の返信。
@@ -153,7 +154,7 @@ static int http_file_send(int accept_socket, unsigned char *filename, off_t cont
 	// ================
 	// 実体転送開始
 	// ================
-	if( copy_descriptors(in_fd,accept_socket,content_length,joint_file_info_p,(char*)filename,range_start_pos)<0 )
+	if( copy_descriptors(in_fd,accept_socket,content_length,joint_file_info_p,range_start_pos)<0 )
 	{
 		return ( -1 );
 	}
@@ -167,7 +168,6 @@ int copy_descriptors(int in_fd,
                      int out_fd,
                      off_t content_length,
                      JOINT_FILE_INFO_T *joint_file_info_p,
-                     char* infilename,
                      off_t range_start_pos)
 {
 
@@ -210,8 +210,11 @@ int copy_descriptors(int in_fd,
                 file_read_len = read(in_fd, send_buf_p, target_read_size);
                 if ( file_read_len <= 0 )
                 {
-                        debug_log_output("EOF detect.\n");
-                        break;
+                        //読み終わった。
+                        if (next_file(&in_fd, joint_file_info_p)){
+                                debug_log_output("EOF detect.\n");
+                                break;
+                        }
                 }
 
                 // SOCKET にデータを送信
@@ -237,4 +240,29 @@ int copy_descriptors(int in_fd,
         }
 	return 0;
 }
-
+/////////////////////////////////////////////////////////////////////////////////////////
+static int next_file(int *in_fd_p, JOINT_FILE_INFO_T *joint_file_info_p)
+{
+        if (in_fd_p && joint_file_info_p){
+                // 読み終わったファイルをCLOSE()
+                close(*in_fd_p);
+                // 次のファイルがあるか?
+                joint_file_info_p->current_file_num++;
+                if ( joint_file_info_p->current_file_num >= joint_file_info_p->file_num ){
+                    return 1;           // これで終了
+                }
+                // 次のファイルをOPEN()
+                *in_fd_p = open(joint_file_info_p->file[joint_file_info_p->current_file_num].name, O_BINARY);
+                if ( *in_fd_p < 0 ){
+                        return ( -1 );
+                }
+                // ブロックモードの設定
+#ifdef linux
+                set_blocking_mode(*in_fd_p, 0); /* blocking */
+#endif
+                return 0;               // 次のファイルの準備完了
+        } else {
+                // パラメータがNULLの場合には1ファイルのみの処理とする
+                return 1;               // これで終了
+        }
+}
