@@ -1,5 +1,5 @@
 killall wizdlive
-rm ../../wizd_debug.log
+rm /tmp/wizd_debug.log
 cd ..
 ./wizdlive
 cd source

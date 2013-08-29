@@ -92,8 +92,7 @@ void	server_listen()
     // =====================
     // NON BLOCKING MODE設定
     // =====================
-    int val = 1;
-    ioctl(listen_socket, FIONBIO, &val);
+    set_blocking_mode(listen_socket,1);//NON_BLOCKING_MODE
     // =====================
     // メインループ
     // =====================

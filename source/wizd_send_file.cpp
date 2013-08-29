@@ -23,8 +23,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <dirent.h>
-
-
+#include <error.h>
+#include <cerrno>
 #include "wizd.h"
 
 static int http_file_send(int accept_socket, unsigned char *filename, off_t content_length, off_t range_start_pos );
@@ -172,10 +172,11 @@ int copy_descriptors(int in_fd,
 {
 
         unsigned char   *send_buf_p;
-        ssize_t                 file_read_len;
+        off_t                  file_read_len;
         int                     data_send_len;
-        off_t                   total_read_size;
-        size_t                  target_read_size;
+        int                     buffer_ptr;
+        off_t                  total_read_size=0;
+        off_t                  target_read_size=0;
 
         // ======================
         // 送信バッファを確保
@@ -187,48 +188,72 @@ int copy_descriptors(int in_fd,
                 debug_log_output("malloc() error.\n");
                 return (-1 );
         }
+#ifdef linux
+        set_blocking_mode(in_fd, 1); /* non_blocking */
+        set_blocking_mode(out_fd,1); /* non_blocking */
+#endif
+        // 一応バッファクリア
+        memset(send_buf_p, 0, SEND_BUFFER_SIZE);
         // ================
         // 実体転送開始
         // ================
         while ( 1 )
         {
-                // 一応バッファクリア
-                memset(send_buf_p, 0, SEND_BUFFER_SIZE);
-
-                // 目標readサイズ計算
-                if ( (content_length - total_read_size) > SEND_BUFFER_SIZE )
-                {
+                if( target_read_size == total_read_size ){
+                    // 目標readサイズ計算 content_length==0も考慮
+                    if ( (content_length - total_read_size) > SEND_BUFFER_SIZE )
+                    {
                         target_read_size = SEND_BUFFER_SIZE;
-                }
-                else
-                {
+                    }
+                    else
+                    {
                         target_read_size = (size_t)(content_length - total_read_size);
+                    }
+
+
+                    // ファイルからデータを読み込む。
+                    file_read_len = read(in_fd, send_buf_p, target_read_size);
+                    //read end
+                    if ( file_read_len == 0 )
+                    {
+                       //読み終わった。contents_length変えるべき
+                       if (next_file(&in_fd, joint_file_info_p)){
+                               debug_log_output("EOF detect.\n");
+                               break;
+                       }
+                       close(in_fd);
+                       free(send_buf_p);
+                       return 0;
+                    //read error
+                    }else if ( file_read_len < 0 ){
+                       close(in_fd);
+                       free(send_buf_p);
+                       debug_log_output("read error");
+                       return ( -1 );
+                    }
+                    buffer_ptr = 0;
+                }else if ( target_read_size < total_read_size ){
+                    debug_log_output( "read write error");
+                    close(in_fd);
+                    free(send_buf_p);
+                    return ( -1 );
                 }
-
-
-                // ファイルからデータを読み込む。
-                file_read_len = read(in_fd, send_buf_p, target_read_size);
-                if ( file_read_len <= 0 )
-                {
-                        //読み終わった。
-                        if (next_file(&in_fd, joint_file_info_p)){
-                                debug_log_output("EOF detect.\n");
-                                break;
-                        }
-                }
-
+                    
                 // SOCKET にデータを送信
-                data_send_len = send(out_fd, send_buf_p, file_read_len, 0);
-                if ( data_send_len != file_read_len )
+                data_send_len = write(out_fd, send_buf_p+buffer_ptr, file_read_len-buffer_ptr);
+                if ( data_send_len < 0)
                 {
-                        debug_log_output("send() error.\n");
+                        if( errno == EAGAIN ){
+                            continue;
+                        }
+                        debug_log_output("send() error.%d %s\n", errno,strerror(errno));
         		free(send_buf_p);       // Memory Free.
                         close(in_fd);   // File Close.
                         return ( -1 );
                 }
 
-                total_read_size += file_read_len;
-
+                total_read_size += data_send_len;
+                buffer_ptr += data_send_len;
                 if ( content_length != 0 )
                 {
                         debug_log_output("Streaming..  %lld / %lld ( %lld.%lld%% )\n", total_read_size, content_length, total_read_size * 100 / content_length,  (total_read_size * 1000 / content_length ) % 10 );
