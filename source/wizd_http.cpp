@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <dirent.h>
+#include <error.h>
+#include <cerrno>
 #include "wizd.h"
 static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info);
 static int http_file_check( HTTP_RECV_INFO *http_recv_info_p);
@@ -47,7 +49,6 @@ void 	server_http_process(int accept_socket)
         // エラーメッセージ
         debug_log_output("http_header_receive() Error. result=%d\n", result);
         // ソケットクローズ
-        debug_log_output("CLOSELOCSE");
         close(accept_socket);
         return;
     }
@@ -212,7 +213,7 @@ void 	server_http_process(int accept_socket)
         }
     }
     // ソケットクローズ
-    close(accept_socket);
+    //close(accept_socket);
     return;
 }
 // **************************************************************************
@@ -249,6 +250,7 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
         if ( recv_len == 0 ){ // 空行検知。ヘッダ受信終了。
             break;
         }else if ( recv_len < 0 ){ // 受信失敗
+            debug_log_output("header read() error.%d %s\n", errno,strerror(errno));        
             return ( -1 );
         }
         // --------------------------
@@ -565,26 +567,26 @@ int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max)
 }
 static int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location)
 {
-    char buffer[FILENAME_MAX];
+    unsigned char *buffer = (unsigned char*)malloc(FILENAME_MAX);
     snprintf(buffer, sizeof(buffer),
     "HTTP/1.1 301 Found\r\n"
     "Location: %s\r\n"
     "\r\n", location
     );
-    write(accept_socket, buffer, strlen(buffer)+1);
+    enqueue_memory(accept_socket,strlen(buffer)+1,buffer);
     debug_log_output("Redirect to %s",location);
     return 0;
 }
 static int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info)
 {
-    char buffer[1024];
+    unsigned char *buffer = (unsigned char*)malloc(FILENAME_MAX);
     sprintf(buffer,  "HTTP/1.x 404 Not Found\r\n"
                      "Content-Length: 9\r\n"
                      "Connection: Close\r\n"
                      "Content-Type: text/html; charset=UTF-8\r\n"
                      "\r\n"
                      "Not Found");
-    write(accept_socket, buffer, strlen(buffer)+1);
+    enqueue_memory(accept_socket,strlen(buffer)+1,buffer);
     debug_log_output("Not Found %s", http_recv_info->request_uri);
     return 0;
     //return http_redirect_response(accept_socket, http_recv_info, "/");

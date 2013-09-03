@@ -37,7 +37,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     unsigned char *p_auth = NULL;
     int port = 80;
     int sock;
-    unsigned long long content_length = 0;
+    off_t content_length = 0;
     int len = 0;
     int line = 0;
     int i;
@@ -299,24 +299,24 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                 convert_language_code(p, q, LINE_BUF_SIZE, CODE_AUTO, global_param.client_language_code);
                 p = q;
             }
-            snprintf(rep_str, sizeof(rep_str), "|http://%s/-.-http://"
-            , http_recv_info_p->recv_host);
+            snprintf(rep_str, sizeof(rep_str), "|http://%s/-.-http://", http_recv_info_p->recv_host);
             replace_character(p, LINE_BUF_SIZE, "|http://", rep_str);
             write(accept_socket, p, strlen(p));
             debug_log_output("sent html: %s", p);
         }
+        close(sock);
+        close(accept_socket);
     } else {
         for (i=0; i<line; i++) {
             write(accept_socket, line_buf[i], strlen(line_buf[i]));
         }
         if( http_recv_info_p->isGet == 1 ){
-            copy_descriptors(sock, accept_socket,
-                            (off_t)content_length,
-                            NULL ,
+            copy_descriptors(sock,
+                             accept_socket,
+                             content_length);
                             //(char*)http_recv_info_p->recv_uri,
-                            http_recv_info_p->range_start_pos);
+                            //http_recv_info_p->range_start_pos);
         }
     }
-    close(sock);
     return 0;
 }

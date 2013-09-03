@@ -316,7 +316,7 @@ void http_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p, int flag_pse
     // 返信実行
     // =================
     http_filemenu_send( accept_socket, filemenu_buf_malloc_p );
-    free(filemenu_buf_malloc_p);
+    //free(filemenu_buf_malloc_p);
     free(file_info_malloc_p);
     return;
 }
@@ -1876,8 +1876,10 @@ static void http_filemenu_send(int accept_socket, unsigned char *filemenu_data)
     // 実体返信
     // --------------
     send_data_len = strlen(filemenu_data);
-    result_len = send(accept_socket, filemenu_data, send_data_len, 0);
+    enqueue_memory(accept_socket,send_data_len,filemenu_data);
+    //result_len = send(accept_socket, filemenu_data, send_data_len, 0);
     debug_log_output("body result_len=%d, send_data_len=%d\n", result_len, send_data_len );
+    //close(accept_socket);
     return;
 }
 // **************************************************************************
@@ -2346,7 +2348,7 @@ void http_image_viewer(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     // 返信実行
     // =================
     http_filemenu_send( accept_socket, image_viewer_skin_p );
-    free(image_viewer_skin_p);
+    //free(image_viewer_skin_p);
     return;
 }
 // **************************************************************************
@@ -2354,7 +2356,7 @@ void http_image_viewer(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 // **************************************************************************
 void http_music_single_play(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 {
-    unsigned char	work_data[FILENAME_MAX*2];
+    unsigned char*	work_data= (unsigned char*)malloc(FILENAME_MAX*2);
     unsigned char	file_name[FILENAME_MAX];
     unsigned char	file_extension[16];
     unsigned char	file_uri_link[FILENAME_MAX];
@@ -2576,7 +2578,7 @@ void http_listfile_to_playlist_create(int accept_socket, HTTP_RECV_INFO *http_re
     // =================
     http_filemenu_send( accept_socket, playlist_buf_malloc_p );
     close( fd );
-    free( playlist_buf_malloc_p );
+    //free( playlist_buf_malloc_p );
     return;
 }
 // *****************************************************
@@ -2702,7 +2704,7 @@ void http_option_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     // 返信実行
     // =================
     http_filemenu_send( accept_socket, option_menu_skin_p );
-    free(option_menu_skin_p);
+    //free(option_menu_skin_p);
     return;
 }
 /********************************************************************************/
@@ -3338,6 +3340,6 @@ int http_index( int accept_socket , unsigned char* send_filename )
     // 返信実行
     // =================
     http_filemenu_send( accept_socket , index_html );
-    free( index_html );
+    //free( index_html );
     return 1;
 }

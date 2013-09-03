@@ -158,6 +158,6 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     }
     // parent
     close(pfd[1]);
-    copy_descriptors(pfd[0], accept_socket, 0, NULL,0);
+    copy_descriptors(pfd[0], accept_socket, 0);
     return 0;
 }

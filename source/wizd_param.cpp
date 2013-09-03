@@ -468,11 +468,6 @@ void config_file_read(void)
                     strncpy(global_param.user_agent_pc, value
                     , sizeof(global_param.user_agent_pc));
                 }
-                // max_child_count
-                if ( strcasecmp("max_child_count", key) == 0 )
-                {
-                    global_param.max_child_count = atoi(value);
-                }
                 // flag_execute_cgi
                 if ( strcasecmp("flag_execute_cgi", key) == 0 )
                 {

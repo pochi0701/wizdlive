@@ -26,7 +26,6 @@
 
 #include "wizd.h"
 int volatile child_count = 0;
-#define MAX_CHILD_COUNT (global_param.max_child_count)
 typedef struct {
     SOCKET                  accept_socket;      // SOCKET
     unsigned char           *access_host;       // アクセスしてきたIP
@@ -48,7 +47,7 @@ void	server_listen()
     unsigned char       access_host[256];
     fd_set fds, read_fds;         			// セレクト用集合
     struct timeval t_val;         			// 待ちタイマー値
-    
+    int    octrl=0;
     ACCESS_INFO     ac_in;
     // =============================
     // listenソケット生成
@@ -96,8 +95,8 @@ void	server_listen()
     // =====================
     // メインループ
     // =====================
-    FD_ZERO (&read_fds);
-    FD_SET (listen_socket, &read_fds);
+//    FD_ZERO (&read_fds);
+//    FD_SET (listen_socket, &read_fds);
     while ( 1 )
     {
         // ====================
@@ -110,21 +109,35 @@ void	server_listen()
         //        sleep(1000);
         //    }
         //}
-        t_val.tv_sec = 10;
-        t_val.tv_usec = 0;
-        memcpy (&fds, &read_fds, sizeof (fd_set));
-        ret = select (listen_socket + 1, &fds, NULL, NULL, &t_val);
-        // timeout（10秒タイマー）
-        if (ret == INVALID_SOCKET)
+        //queueが無いときはselectで待つ
+        if( queue_get_num() == 0 ){
+    FD_ZERO (&read_fds);
+    FD_SET (listen_socket, &read_fds);
+            t_val.tv_sec = 20;
+            t_val.tv_usec = 0;
+            memcpy (&fds, &read_fds, sizeof (fd_set));
+            ret = select (listen_socket + 1, &fds, NULL, NULL, &t_val);
+            // timeout（10秒タイマー）
+            if (ret == INVALID_SOCKET)
+            {
+                debug_log_output("select timeout. ret=%d\n", accept_socket);
+                continue;
+            }
+            octrl = 1;
+        }
+        //それ以外はコピー実行
+        else
         {
-           debug_log_output("select timeout. ret=%d\n", accept_socket);
-           continue;
+            queue_do_copy();
+            octrl = 0;
         }
         //debug_log_output("Waiting for a new client...");
         accept_socket = accept(listen_socket, (struct sockaddr *)&caddr, &caddr_len);
         if ( accept_socket < 0 ) // accept失敗チェック
         {
-            debug_log_output("accept() error. ret=%d\n", accept_socket);
+            if( octrl ){
+                debug_log_output("accept() error. ret=%d\n", accept_socket);
+            }
             continue;		// 最初に戻る。
         }
         // 2004/08/27 Add end
@@ -154,7 +167,7 @@ void server_listen_main(ACCESS_INFO* ac_in)
     strcpy( access_host, ac_in->access_host);
     debug_log_output("\n\n=============================================================\n");
     debug_log_output("Socket Accept!!(accept_socket=%d)\n", accept_socket);
-    child_count ++;
+    //child_count ++;
     rand();
     // caddr 情報表示
     debug_log_output("client addr = %s\n", inet_ntoa(caddr.sin_addr) );
@@ -217,7 +230,7 @@ void server_listen_main(ACCESS_INFO* ac_in)
     }else{
         // HTTP鯖として、仕事実行
         server_http_process(accept_socket);// , access_host , client_addr_str );
-        close(accept_socket);
+        //close(accept_socket);
         debug_log_output("HTTP process end.\n");
         debug_log_output("=============================================================\n");
     }

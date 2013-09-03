@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
     // =======================
     // HTTP Server仕事開始
     // =======================
+    queue_init();
     server_listen();
     printf("%s  end.\n", SERVER_NAME);
     exit( 0 );
