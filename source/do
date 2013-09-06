@@ -1,6 +1,0 @@
-killall wizdlive
-rm /tmp/wizd_debug.log
-cd ..
-./wizdlive
-cd source
-

@@ -62,7 +62,7 @@
 #define	DEFAULT_FLAG_USE_SKIN		FALSE
 #define	DEFAULT_SKINDATA_ROOT		"./skin"
 #define	DEFAULT_SKINDATA_NAME		"default"
-
+#define MAX_EVENTS                      100
 // execute path for CGI
 #define	DEFAULT_PATH	"/usr/bin:/bin:/usr/sbin:/usr/bin"
 
@@ -322,6 +322,9 @@ typedef struct {
 	// プロクシで User-Agent を上書きするならその文字列
 	char	user_agent_proxy_override[128];
 
+	// 子プロセスの制限
+	int		max_child_count;
+
 	// CGIスクリプトの実行を許可するかフラグ
 	int		flag_execute_cgi;
 
@@ -447,7 +450,7 @@ extern void server_http_process(int accept_socket);
 
 
 // バッファリングしながら in_fd から out_fd へ データを転送
-extern int copy_descriptors(int in_fd,int out_fd,off_t content_length);
+extern int copy_descriptors(int in_fd,int out_fd,off_t content_length,JOINT_FILE_INFO_T *joint_file_info_p,off_t range_start_pos);
 //extern int copy_descriptors(int in_fd, int out_fd, off_t content_length, JOINT_FILE_INFO_T *joint_file_info_p);
 
 extern int analyze_vob_file(unsigned char *vob_filename, JOINT_FILE_INFO_T *joint_file_info_p );
@@ -489,29 +492,12 @@ extern void check_file_extension_to_mime_type(const unsigned char *file_extensio
 // 日本語文字コード変換(NKFラッパー）
 extern void convert_language_code(const unsigned char *in, unsigned char *out, size_t len, int in_flag, int out_flag);
 
-
+//EPOLL追加
+extern int add_epoll( int socket, int rwtrigger );
+//EPOLL削除
+extern int del_epoll( int socket ); 
+//indexファイルを返す
 extern int http_index( int accept_socket , unsigned char* send_filename );
-typedef struct
-{
-        int             in_fd;
-        int             out_fd;
-        unsigned char   *send_buf_p;
-        int             buffer_ptr;
-        off_t           read_size;
-        off_t           write_size;
-        off_t           content_length;
-        bool            done;
-        int             prev;
-        int             next;
-} COPY_QUEUE;
-#define MAX_QUEUE 100
-void queue_init(void);
-int  enqueue(int in_fd, int out_fd, off_t content_length);//CUE追加
-int  enqueue_memory(int out_fd, off_t content_length,unsigned char* buffer);
-int  dequeue(int num);                                    //CUE削除
-int  queue_get_num(void);                                 //queue個数
-int  queue_do_copy(void);                                 //CUEコピー       
-int  copy_body(COPY_QUEUE* ci);
 // ========================================================
 // 文字コード変換。
 // libnkfをそのまま使用。作者様に感謝ヽ(´ー｀)ノ

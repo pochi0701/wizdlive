@@ -19,7 +19,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "wizd.h"
-#include "test2.h"
+#include "castpatch.h"
 static int config_file_open(void);
 static int config_file_read_line(int fd, unsigned char *line_buf, int line_buf_size);
 static void line_buffer_clearance(unsigned char *line_buf);
@@ -467,6 +467,11 @@ void config_file_read(void)
                 {
                     strncpy(global_param.user_agent_pc, value
                     , sizeof(global_param.user_agent_pc));
+                }
+                // max_child_count
+                if ( strcasecmp("max_child_count", key) == 0 )
+                {
+                    global_param.max_child_count = atoi(value);
                 }
                 // flag_execute_cgi
                 if ( strcasecmp("flag_execute_cgi", key) == 0 )

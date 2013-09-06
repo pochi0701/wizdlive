@@ -25,7 +25,7 @@
 #include <time.h>
 #include "wizd.h"
 #include "wizd_aviread.h"
-#include "test2.h"
+#include "castpatch.h"
 #define SORT_FILE_MASK   ( 0x000000FF )
 #define SORT_DIR_MASK   ( 0x00000F00 )
 #define SORT_DIR_FLAG(_A_)  ( ( _A_ & SORT_DIR_MASK ) >> 8 )
@@ -280,7 +280,7 @@ void http_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p, int flag_pse
     // =============================
     // 返信データ生成領域をmalloc
     // =============================
-    filemenu_buf_malloc_p = (unsigned char*)malloc( FILEMENU_BUF_SIZE );
+    filemenu_buf_malloc_p = (unsigned char*)calloc( FILEMENU_BUF_SIZE,1 );
     if (filemenu_buf_malloc_p == NULL)
     {
         debug_log_output("malloc() error");
@@ -316,7 +316,7 @@ void http_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p, int flag_pse
     // 返信実行
     // =================
     http_filemenu_send( accept_socket, filemenu_buf_malloc_p );
-    //free(filemenu_buf_malloc_p);
+    free(filemenu_buf_malloc_p);
     free(file_info_malloc_p);
     return;
 }
@@ -462,7 +462,7 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
     unsigned char	read_filename[FILENAME_MAX];
     int		i, j;
     unsigned char	work_filename[FILENAME_MAX];
-    unsigned char	work_data[FILENAME_MAX];
+    unsigned char	work_data[FILENAME_MAX]={0};
     unsigned char	work_data2[FILENAME_MAX];
     int		now_page;		// 現在のページ番号
     int		max_page;		// 最大ページ番号
@@ -564,7 +564,7 @@ static void create_skin_filemenu(HTTP_RECV_INFO *http_recv_info_p, FILE_INFO_T *
     }
     memset(skin_rep_data_global_p, '\0', sizeof(SKIN_REPLASE_GLOBAL_DATA_T));
     skin_rep_line_malloc_size = sizeof(SKIN_REPLASE_LINE_DATA_T) * (global_param.page_line_max + 1);
-    skin_rep_data_line_p      = (SKIN_REPLASE_LINE_DATA_T*)malloc( skin_rep_line_malloc_size );
+    skin_rep_data_line_p      = (SKIN_REPLASE_LINE_DATA_T*)calloc( skin_rep_line_malloc_size, 1 );
     if ( skin_rep_data_line_p == NULL )
     {
         debug_log_output("malloc() error.");
@@ -1450,9 +1450,9 @@ static void replace_skin_line_data(unsigned char *menu_work_p, int menu_work_buf
 static unsigned char *skin_file_read(unsigned char *read_filename, int *malloc_size )
 {
     int		fd;
-    struct stat		file_stat;
-    int				result;
-    ssize_t			read_size;
+    struct stat		file_stat={0};
+    int			result;
+    ssize_t		read_size;
     unsigned char 	*read_work_buf;
     unsigned char 	*read_buf;
     // ファイルサイズチェック
@@ -1589,7 +1589,7 @@ static int directory_stat(unsigned char *path, FILE_INFO_T *file_info_p, int fil
     struct stat		file_stat;
     int				result;
     unsigned char	fullpath_filename[FILENAME_MAX];
-    unsigned char	file_extension[8];
+    unsigned char	file_extension[8]={0};
     debug_log_output("directory_stat() start. path='%s'", path);
     dir = opendir((char*)path);
     if ( dir == NULL )	// エラーチェック
@@ -1640,7 +1640,7 @@ static int directory_stat(unsigned char *path, FILE_INFO_T *file_info_p, int fil
         file_info_p[count].time = file_stat.st_mtime;
         // vob先頭ファイルチェック v0.12f3
         if ( (global_param.flag_show_first_vob_only == TRUE)
-        &&( strcasecmp(file_extension, "vob") == 0 ) ) {
+            &&( strcasecmp(file_extension, "vob") == 0 ) ) {
             if (fullpath_filename[strlen(fullpath_filename)-5] == '1') {
                 JOINT_FILE_INFO_T joint_file_info;
                 if (analyze_vob_file(fullpath_filename, &joint_file_info ) == 0) {
@@ -1753,7 +1753,7 @@ static int tsv_stat(unsigned char *path, FILE_INFO_T *file_info_p, int file_num)
 static int file_ignoral_check( char *name, unsigned char *path )
 {
     int				i;
-    unsigned char	file_extension[16];
+    unsigned char	file_extension[16]={0};
     char			flag;
     unsigned char	work_filename[FILENAME_MAX];
     struct stat		file_stat;
@@ -1876,10 +1876,8 @@ static void http_filemenu_send(int accept_socket, unsigned char *filemenu_data)
     // 実体返信
     // --------------
     send_data_len = strlen(filemenu_data);
-    enqueue_memory(accept_socket,send_data_len,filemenu_data);
-    //result_len = send(accept_socket, filemenu_data, send_data_len, 0);
+    result_len = send(accept_socket, filemenu_data, send_data_len, 0);
     debug_log_output("body result_len=%d, send_data_len=%d\n", result_len, send_data_len );
-    //close(accept_socket);
     return;
 }
 // **************************************************************************
@@ -2348,7 +2346,7 @@ void http_image_viewer(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     // 返信実行
     // =================
     http_filemenu_send( accept_socket, image_viewer_skin_p );
-    //free(image_viewer_skin_p);
+    free(image_viewer_skin_p);
     return;
 }
 // **************************************************************************
@@ -2356,7 +2354,7 @@ void http_image_viewer(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 // **************************************************************************
 void http_music_single_play(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 {
-    unsigned char*	work_data= (unsigned char*)malloc(FILENAME_MAX*2);
+    unsigned char	work_data[FILENAME_MAX*2];
     unsigned char	file_name[FILENAME_MAX];
     unsigned char	file_extension[16];
     unsigned char	file_uri_link[FILENAME_MAX];
@@ -2578,7 +2576,7 @@ void http_listfile_to_playlist_create(int accept_socket, HTTP_RECV_INFO *http_re
     // =================
     http_filemenu_send( accept_socket, playlist_buf_malloc_p );
     close( fd );
-    //free( playlist_buf_malloc_p );
+    free( playlist_buf_malloc_p );
     return;
 }
 // *****************************************************
@@ -2704,7 +2702,7 @@ void http_option_menu(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     // 返信実行
     // =================
     http_filemenu_send( accept_socket, option_menu_skin_p );
-    //free(option_menu_skin_p);
+    free(option_menu_skin_p);
     return;
 }
 /********************************************************************************/
@@ -3340,6 +3338,6 @@ int http_index( int accept_socket , unsigned char* send_filename )
     // 返信実行
     // =================
     http_filemenu_send( accept_socket , index_html );
-    //free( index_html );
+    free( index_html );
     return 1;
 }

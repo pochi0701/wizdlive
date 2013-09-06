@@ -57,6 +57,7 @@ void replace_character(unsigned char *sentence, const unsigned char *key, const 
     return;
 #else
     unsigned char* p;
+    unsigned char* q;
     unsigned char* str;
     int klen=strlen(key);
     int rlen=strlen(rep);
@@ -76,7 +77,15 @@ void replace_character(unsigned char *sentence, const unsigned char *key, const 
     }else if( klen > rlen ){
         num = klen-rlen;
         while (p != NULL){
-            strcpy( (char*)p,(char*)(p+num));
+            q = p;
+            while( 1 ){
+               *(char*)q = *(char*)(q+num);
+               if( *(char*)(q+num) == 0 ){
+                   break;
+               }
+               q++;
+            }
+            //memcpy( (char*)p,(char*)(p+num),len);
             memcpy( (char*)p,(char*)rep,rlen);
             p = (unsigned char*)strstr((char*)p+rlen, (char*)key);
             //slen -= num;
@@ -142,8 +151,8 @@ void cut_enclose_words(unsigned char *sentence, unsigned char *start_key, unsign
     int slen;
     int len;
     if( sentence  == NULL || *sentence  == 0 ||
-    start_key == NULL || *start_key == 0 ||
-    end_key   == NULL || *end_key   == 0 ){
+        start_key == NULL || *start_key == 0 ||
+        end_key   == NULL || *end_key   == 0 ){
         return;
     }
     //end_keyの長さ
@@ -164,8 +173,12 @@ void cut_enclose_words(unsigned char *sentence, unsigned char *start_key, unsign
         }
         //移動
         len = slen-(int)((char*)end_p-(char*)sentence)-elen;
-        strncpy((char*)start_p,(char*)(end_p+elen),len);
-        start_p[len] = '\0';//sentence[len] = '\0';
+        while(len--){
+            *(char*)start_p++ = *(char*)(elen+end_p++);
+        }
+        *(char*)start_p = 0;
+        //memcpy((char*)start_p,(char*)(end_p+elen),len);
+        //start_p[len] = '\0';//sentence[len] = '\0';
     }
     return;
 }
@@ -192,14 +205,18 @@ char*   cut_after_character(unsigned char *sentence, unsigned char cut_char)
 //***************************************************************************
 void 	cut_before_character(unsigned char *sentence, unsigned char cut_char)
 {
-#if 1
+#if 0
     unsigned char* p;
+    unsigned char* buffer;
     if (sentence == NULL || *sentence == 0){
         return;
     }
     // 削除対象キャラクターが最初に出てくる所を探す。
     p = (unsigned char*)strchr((char*)sentence, cut_char);
     if( p ){
+        //バッファに一時コピー
+        buffer = malloc(strlen(sentence)+1);
+        strcpy(buffer,sentence);
         // 削除対象キャラクターの後ろから最後までの文字列をコピー
         strcpy((char*)sentence,(char*)++p);
         return;
@@ -211,9 +228,10 @@ void 	cut_before_character(unsigned char *sentence, unsigned char cut_char)
 #else
     unsigned char       *symbol_p;
     unsigned char       *malloc_p;
-    int                         sentence_len;
-    if (sentence == NULL || *sentence == 0)
-    return;
+    int                 sentence_len;
+    if (sentence == NULL || *sentence == 0){
+        return;
+    }
     sentence_len = strlen(sentence);
     // 削除対象キャラクターが最初に出てくる所を探す。
     symbol_p = (unsigned char*)strchr((char*)sentence, cut_char);
@@ -224,14 +242,15 @@ void 	cut_before_character(unsigned char *sentence, unsigned char cut_char)
     }
     symbol_p++;
     // テンポラリエリアmalloc.
-    malloc_p = (unsigned char*)mymalloc(sentence_len + 10);
-    if (malloc_p == NULL)
-    return;
+    malloc_p = (unsigned char*)malloc(sentence_len + 10);
+    if (malloc_p == NULL){
+        return;
+    }
     // 削除対象キャラクターの後ろから最後までの文字列をコピー
     strncpy((char*)malloc_p, (char*)symbol_p, sentence_len + 10);
     // sentence書き換え
     strncpy((char*)sentence, (char*)malloc_p, sentence_len);
-    myfree(malloc_p);
+    free(malloc_p);
     return;
 #endif
 }
@@ -248,9 +267,13 @@ void 	cut_before_last_character(unsigned char *sentence, unsigned char cut_char)
     }
     // 削除対象キャラクターが最後に出てくる所を探す。
     p = (unsigned char*)strrchr((char*)sentence, cut_char);
-    if( p ){
+    if( p++ ){
         // 削除対象キャラクターの後ろから最後までの文字列をコピー
-        strcpy((char*)sentence,(char*)++p);
+        //strcpy((char*)sentence,(char*)++p);
+        while( *(char*)p ){
+            *(char*)sentence++=*(char*)p++;
+        }
+        *(char*)sentence = 0;
     }
 #else
     unsigned char       *symbol_p;
@@ -302,7 +325,7 @@ void 	cut_after_last_character(unsigned char *sentence, unsigned char cut_char)
 //******************************************************************
 void    cat_before_n_length(unsigned char *sentence,  unsigned int n)
 {
-#if 1
+#if 0
     unsigned int len;
     if (sentence == NULL || *sentence == 0){
         return;
@@ -321,18 +344,20 @@ void    cat_before_n_length(unsigned char *sentence,  unsigned int n)
     return;
     sentence_len = strlen(sentence);
     // sentence が、nよりも同じか短いならばreturn
-    if ( sentence_len <= n )
-    return;
+    if ( sentence_len <= n ){
+        return;
+    }
     // テンポラリエリアmalloc.
-    malloc_p = (unsigned char*)mymalloc(sentence_len + 10);
-    if (malloc_p == NULL)
-    return;
+    malloc_p = (unsigned char*)malloc(sentence_len + 10);
+    if (malloc_p == NULL){
+        return;
+    }
     work_p = sentence;
     work_p += sentence_len;
     work_p -= n;
     strncpy((char*)malloc_p, (char*)work_p, sentence_len + 10);
     strncpy( (char*)sentence, (char*)malloc_p, sentence_len);
-    myfree(malloc_p);
+    free(malloc_p);
     return;
 #endif
 }

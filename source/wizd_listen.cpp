@@ -23,17 +23,20 @@
 #include <signal.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <sys/epoll.h>  
 
 #include "wizd.h"
 int volatile child_count = 0;
+#define MAX_CHILD_COUNT (global_param.max_child_count)
 typedef struct {
     SOCKET                  accept_socket;      // SOCKET
-    unsigned char           *access_host;       // アクセスしてきたIP
     struct  sockaddr_in     caddr;
 } ACCESS_INFO;
 void server_listen_main(ACCESS_INFO* ac_in);
+int                 epfd;                           // EPOLL FileDescriptor
+/////////////////////////////////////////////////////////////////////////
 // HTTPサーバ 待ち受け動作部
-// **********************************************************************
+/////////////////////////////////////////////////////////////////////////
 void	server_listen()
 {
     int        		ret;
@@ -44,10 +47,10 @@ void	server_listen()
     struct sockaddr_in  caddr;				// クライアントソケットアドレス構造体
     socklen_t   	caddr_len = sizeof(caddr);	// クライアントソケットアドレス構造体のサイズ
     int			sock_opt_val;
-    unsigned char       access_host[256];
-    fd_set fds, read_fds;         			// セレクト用集合
+    struct epoll_event  events[MAX_EVENTS];             // EPOLL EVENTS
+    int                 nfds;         			// EPOLL用 
     struct timeval t_val;         			// 待ちタイマー値
-    int    octrl=0;
+    int n;   
     ACCESS_INFO     ac_in;
     // =============================
     // listenソケット生成
@@ -95,62 +98,80 @@ void	server_listen()
     // =====================
     // メインループ
     // =====================
-//    FD_ZERO (&read_fds);
-//    FD_SET (listen_socket, &read_fds);
-    while ( 1 )
+    if((epfd = epoll_create(MAX_EVENTS)) < 0) {
+        debug_log_output("epoll_create()\\n");
+        exit(1);
+    }
+    memset(&events, 0, sizeof(events));
+    //レベルトリガー
+    add_epoll(listen_socket, EPOLLIN );
+    while( 1 )
     {
         // ====================
         // Accept待ち.
         // ====================
-        //if (MAX_CHILD_COUNT > 0 && child_count >= MAX_CHILD_COUNT) {
-        //    debug_log_output("Waiting for a child_count is going down... "
-        //    "%d / %d\n", child_count, MAX_CHILD_COUNT);
-        //    while (MAX_CHILD_COUNT > 0 && child_count >= MAX_CHILD_COUNT) {
-        //        sleep(1000);
-        //    }
-        //}
-        //queueが無いときはselectで待つ
-        if( queue_get_num() == 0 ){
-    FD_ZERO (&read_fds);
-    FD_SET (listen_socket, &read_fds);
-            t_val.tv_sec = 20;
-            t_val.tv_usec = 0;
-            memcpy (&fds, &read_fds, sizeof (fd_set));
-            ret = select (listen_socket + 1, &fds, NULL, NULL, &t_val);
-            // timeout（10秒タイマー）
-            if (ret == INVALID_SOCKET)
-            {
-                debug_log_output("select timeout. ret=%d\n", accept_socket);
-                continue;
+        nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
+        if (nfds == -1) {
+            debug_log_output("epoll_pwait");
+            exit(EXIT_FAILURE);
+        }
+        //可能なファイルディスクリプタ一覧
+        for (n = 0; n < nfds; ++n) {
+            if (events[n].data.fd == listen_socket) {
+                accept_socket = accept(listen_socket, (struct sockaddr *)&caddr, &caddr_len);
+                if ( accept_socket < 0 ) // accept失敗チェック
+                {
+                    debug_log_output("accept() error. ret=%d\n", accept_socket);
+                    continue;           // 最初に戻る。
+                }
+                set_blocking_mode(accept_socket,1);//NON_BLOCKING_MODE
+                //エッジトリガー
+                add_epoll(accept_socket, EPOLLIN | EPOLLET);
+            } else {
+                del_epoll((unsigned int)events[n].data.fd);
+                // 2004/08/27 Add end
+                ac_in.accept_socket = (unsigned int)events[n].data.fd;
+                ac_in.caddr = caddr;
+                server_listen_main(&ac_in);
             }
-            octrl = 1;
         }
-        //それ以外はコピー実行
-        else
-        {
-            queue_do_copy();
-            octrl = 0;
-        }
-        //debug_log_output("Waiting for a new client...");
-        accept_socket = accept(listen_socket, (struct sockaddr *)&caddr, &caddr_len);
-        if ( accept_socket < 0 ) // accept失敗チェック
-        {
-            if( octrl ){
-                debug_log_output("accept() error. ret=%d\n", accept_socket);
-            }
-            continue;		// 最初に戻る。
-        }
-        // 2004/08/27 Add end
-        ac_in.accept_socket = (unsigned int)accept_socket;
-        ac_in.access_host = access_host;
-        ac_in.caddr = caddr;
-        server_listen_main(&ac_in);
-        // 複数アクセス対応
     }
     close( listen_socket );
     return;
 }
+/////////////////////////////////////////////////////////////////////////
+// トリガー追加
+/////////////////////////////////////////////////////////////////////////
+int add_epoll( int socket, int rwtrigger )
+{
+    struct epoll_event  ev;                             // EPOLL EVENTS
+    memset(&ev, 0, sizeof(ev));
+    ev.events  = rwtrigger ;
+    ev.data.fd = socket;
+    /* ソケットをepollに追加 */
+    if (epoll_ctl(epfd, EPOLL_CTL_ADD, socket, &ev) < 0) {
+        debug_log_output("epoll_ctl(EPOLL_CTL_ADD)\\n");
+        exit(1);
+    }
+    return 0;
+}
+/////////////////////////////////////////////////////////////////////////
+//トリガー削除
+/////////////////////////////////////////////////////////////////////////
+int del_epoll( int socket )
+{
+    struct epoll_event  ev;                             // EPOLL EVENTS
+    memset(&ev, 0, sizeof(ev));
+    /* ソケットをepollに追加 */
+    if (epoll_ctl(epfd, EPOLL_CTL_DEL, socket, &ev) < 0) {
+        debug_log_output("epoll_ctl(EPOLL_CTL_DEL)\\n");
+        exit(1);
+    }
+    return 0;
+}
+/////////////////////////////////////////////////////////////////////////
 // 複数アクセス対応
+/////////////////////////////////////////////////////////////////////////
 void server_listen_main(ACCESS_INFO* ac_in)
 {
     int                 access_check_ok;
@@ -163,11 +184,9 @@ void server_listen_main(ACCESS_INFO* ac_in)
     //ACCESS_INFO* ac_in = (ACCESS_INFO*)arg;
     SOCKET accept_socket = (unsigned int)ac_in->accept_socket;
     struct sockaddr_in    caddr = ac_in->caddr;         // クライアントソケットアドレス構造体
-    unsigned char access_host[256];
-    strcpy( access_host, ac_in->access_host);
     debug_log_output("\n\n=============================================================\n");
     debug_log_output("Socket Accept!!(accept_socket=%d)\n", accept_socket);
-    //child_count ++;
+    child_count ++;
     rand();
     // caddr 情報表示
     debug_log_output("client addr = %s\n", inet_ntoa(caddr.sin_addr) );
@@ -229,8 +248,8 @@ void server_listen_main(ACCESS_INFO* ac_in)
         close(accept_socket);     // Socketクローズ
     }else{
         // HTTP鯖として、仕事実行
-        server_http_process(accept_socket);// , access_host , client_addr_str );
-        //close(accept_socket);
+        server_http_process(accept_socket);
+        close(accept_socket);
         debug_log_output("HTTP process end.\n");
         debug_log_output("=============================================================\n");
     }

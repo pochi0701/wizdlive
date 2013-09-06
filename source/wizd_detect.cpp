@@ -23,7 +23,7 @@
 #include <signal.h>
 #include <arpa/inet.h>
 #include "wizd.h"
-#include "test.h"
+#include "castpatch2.h"
 #define  SSDP_IP_ADDRESS  "239.255.255.250"
 #define  SSDP_PORT   (1900)
 #define  SSDP_CHECK_KEY  "Server"

@@ -13,7 +13,7 @@
 #ifndef	_WIZD_TOOLS_H
 #define	_WIZD_TOOLS_H
 
-#include "test.h"
+#include "castpatch2.h"
 
 #define			CR		(0x0D)
 #define			LF		(0x0A)

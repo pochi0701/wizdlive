@@ -13,7 +13,7 @@ STRIP=$(CROSS)strip
 LD=$(CROSS)ld
 RANLIB=$(CROSS)ranlib
 #CFLAGS=-O3 -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Dlinux -D_DEBUG -I./
-CFLAGS= -Wall -Dlinux -D_DEBUG
+CFLAGS= -g -Wall -Dlinux -D_DEBUG
 #CFLAGS+=-mips2
 #LDFLAGS=-L/usr/local/mipsel-linux-uclibc/lib -L/usr/local/mipsel-linux-uclibc/mipsel-linux-uclibc/lib
 #LIBS=-lpthread -lgcc
@@ -57,8 +57,7 @@ wizdlive:	Makefile		\
                 wizd_aviread.cpp\
 		utf8tbl.cpp\
 		libnkf.cpp
-	$(STRIP) wizdlive
-	mv ./wizdlive ../wizdlive
+	cp ./wizdlive ../wizdlive
 
 
 clean:

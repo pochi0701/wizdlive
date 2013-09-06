@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
     {
         printf("Daemoning....\n");
         daemon_init();
+    }else{
+        signal(SIGPIPE, SIG_IGN);
     }
 #endif
     // ==========================================
@@ -126,7 +128,6 @@ int main(int argc, char *argv[])
     // =======================
     // HTTP Server仕事開始
     // =======================
-    queue_init();
     server_listen();
     printf("%s  end.\n", SERVER_NAME);
     exit( 0 );
@@ -159,6 +160,7 @@ static void daemon_init(void)
     }
     setsid();
     signal(SIGHUP, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
     pid = fork();
     if ( pid != 0 ){
         exit ( 0 );
