@@ -32,6 +32,8 @@ MIME_LIST_T mime_list[] = {
 {(unsigned char*)"text/plain"     ,(unsigned char*)"txt"        ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
 {(unsigned char*)"text/html"      ,(unsigned char*)"htm"        ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
 {(unsigned char*)"text/html"      ,(unsigned char*)"html"       ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"text/html"      ,(unsigned char*)"php"       ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"text/html"      ,(unsigned char*)"pl"       ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
 {(unsigned char*)"image/gif"      ,(unsigned char*)"gif"        ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
 {(unsigned char*)"image/jpeg"    ,(unsigned char*)"jpeg"        ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
 {(unsigned char*)"image/jpeg"    ,(unsigned char*)"jpg"         ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },

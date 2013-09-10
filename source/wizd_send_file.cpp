@@ -31,29 +31,56 @@ static int http_file_send(int accept_socket, unsigned char *filename, off_t cont
 // 2004/08/13 Update end
 static int next_file(int *in_fd_p, JOINT_FILE_INFO_T *joint_file_info_p);
 
+
+
+int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off_t content_length)
+{
+        int     send_header_data_len;
+        int     result_len;
+
+        unsigned char   send_http_header_buf[2048];
+        int             ptr=0;
+
+
+        // ---------------
+        // 作業用変数初期化
+        // ---------------
+        memset(send_http_header_buf, '\0', sizeof(send_http_header_buf));
+
+        // --------------
+        // OK ヘッダ生成
+        // --------------
+        ptr = snprintf( (char*)send_http_header_buf, sizeof(send_http_header_buf), "%s%s"HTTP_SERVER_NAME ,HTTP_OK, HTTP_CONNECTION, SERVER_NAME);
+        if( content_length ){
+            ptr += snprintf( (char*)send_http_header_buf+ptr, sizeof(send_http_header_buf) - ptr, HTTP_CONTENT_LENGTH, content_length );
+        }
+        ptr += snprintf( (char*)send_http_header_buf+ptr, sizeof(send_http_header_buf) - ptr, HTTP_CONTENT_TYPE HTTP_END, http_recv_info_p->mime_type);
+
+        send_header_data_len = strlen((char*)send_http_header_buf);
+        debug_log_output("send_header_data_len = %d\n", send_header_data_len);
+        debug_log_output("--------\n");
+        debug_log_output("%s", send_http_header_buf);
+        debug_log_output("--------\n");
+
+
+        // --------------
+        // ヘッダ返信
+        // --------------
+        result_len = send(accept_socket, send_http_header_buf, send_header_data_len, 0);
+        debug_log_output("result_len=%d, send_data_len=%d\n", result_len, send_header_data_len);
+        return 0;
+}
+
 // **************************************************************************
 // ファイル実体の返信。
 // ヘッダ生成＆送信準備
 // **************************************************************************
 int http_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 {
-	int	send_header_data_len;
-	int	result_len;
-
-	unsigned char	send_http_header_buf[2048];
-	unsigned char	work_buf[1024];
-
 	off_t	content_length;
 	
 	struct	stat	file_stat;
 	int				result;
-
-
-
-	// ---------------
-	// 作業用変数初期化
-	// ---------------
-	memset(send_http_header_buf, '\0', sizeof(send_http_header_buf));
 
 
 
@@ -81,34 +108,7 @@ int http_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 	// --------------
 	// OK ヘッダ生成
 	// --------------
-	strncpy((char*)send_http_header_buf, HTTP_OK, sizeof(send_http_header_buf));
-
-	strncat((char*)send_http_header_buf, HTTP_CONNECTION, sizeof(send_http_header_buf) - strlen((char*)send_http_header_buf));
-
-	snprintf((char*)work_buf, sizeof(work_buf), HTTP_SERVER_NAME, SERVER_NAME);
-	strncat((char*)send_http_header_buf, (char*)work_buf, sizeof(send_http_header_buf) - strlen((char*)send_http_header_buf));
-
-	snprintf((char*)work_buf, sizeof(work_buf), HTTP_CONTENT_LENGTH, content_length);
-	strncat((char*)send_http_header_buf, (char*)work_buf, sizeof(send_http_header_buf) - strlen((char*)send_http_header_buf) );
-
-	snprintf((char*)work_buf, sizeof(work_buf), HTTP_CONTENT_TYPE, http_recv_info_p->mime_type);
-	strncat((char*)send_http_header_buf, (char*)work_buf, sizeof(send_http_header_buf) - strlen((char*)send_http_header_buf) );
-	strncat((char*)send_http_header_buf, HTTP_END, sizeof(send_http_header_buf) - strlen((char*)send_http_header_buf) );
-
-
-	send_header_data_len = strlen((char*)send_http_header_buf);
-	debug_log_output("send_header_data_len = %d\n", send_header_data_len);
-	debug_log_output("--------\n");
-	debug_log_output("%s", send_http_header_buf);
-	debug_log_output("--------\n");
-
-
-	// --------------
-	// ヘッダ返信
-	// --------------
-	result_len = send(accept_socket, send_http_header_buf, send_header_data_len, 0);
-	debug_log_output("result_len=%d, send_data_len=%d\n", result_len, send_header_data_len);
-
+        http_header_response(accept_socket, http_recv_info_p,content_length);
 
 	// --------------
 	// 実体返信
@@ -172,12 +172,12 @@ int copy_descriptors(int in_fd,
 {
 
         unsigned char   *send_buf_p;
-        off_t                  file_read_len;
-        int                     data_send_len;
+        off_t                  read_length;
+        int                     write_length;
         int                     buffer_ptr;
+        off_t                  total_write_size=0;
         off_t                  total_read_size=0;
         off_t                  target_read_size=0;
-
         // ======================
         // 送信バッファを確保
         // ======================
@@ -189,8 +189,8 @@ int copy_descriptors(int in_fd,
                 return (-1 );
         }
 #ifdef linux
-        set_blocking_mode(in_fd, 1); /* non_blocking */
-        set_blocking_mode(out_fd,1); /* non_blocking */
+        set_blocking_mode(in_fd, 0); /* non_blocking */
+        set_blocking_mode(out_fd,0); /* non_blocking */
 #endif
         // 一応バッファクリア
         memset(send_buf_p, 0, SEND_BUFFER_SIZE);
@@ -199,69 +199,78 @@ int copy_descriptors(int in_fd,
         // ================
         while ( 1 )
         {
-                if( target_read_size == total_read_size ){
+                if( total_read_size == total_write_size ){
                     // 目標readサイズ計算 content_length==0も考慮
-                    if ( (content_length - total_read_size) > SEND_BUFFER_SIZE )
+                    if ( (content_length - total_write_size) > SEND_BUFFER_SIZE || content_length == 0)
                     {
                         target_read_size = SEND_BUFFER_SIZE;
                     }
                     else
                     {
-                        target_read_size = (size_t)(content_length - total_read_size);
+                        target_read_size = (size_t)(content_length - total_write_size);
                     }
 
 
                     // ファイルからデータを読み込む。
-                    file_read_len = read(in_fd, send_buf_p, target_read_size);
+                    read_length = read(in_fd, send_buf_p, target_read_size);
                     //read end
-                    if ( file_read_len == 0 )
+                    if ( read_length == 0 )
                     {
                        //読み終わった。contents_length変えるべき
                        //if (next_file(&in_fd, joint_file_info_p)){
                        //        debug_log_output("EOF detect.\n");
                        //        break;
                        //}
+                       debug_log_output( "read end");
                        close(in_fd);
+                       close(out_fd);
                        free(send_buf_p);
                        send_buf_p = 0;
                        return 0;
                     //read error
-                    }else if ( file_read_len < 0 ){
+                    }else if ( read_length < 0 ){
                        close(in_fd);
+                       close(out_fd);
                        free(send_buf_p);
                        debug_log_output("read error");
                        return ( -1 );
+                    }else{
+                       total_read_size += read_length;
                     }
                     buffer_ptr = 0;
-                }else if ( target_read_size < total_read_size ){
+                }else if ( total_read_size < total_write_size ){
                     debug_log_output( "read write error");
                     close(in_fd);
+                    close(out_fd);
                     free(send_buf_p);
                     return ( -1 );
                 }
                     
                 // SOCKET にデータを送信
-                data_send_len = write(out_fd, send_buf_p+buffer_ptr, file_read_len-buffer_ptr);
-                if ( data_send_len < 0)
+                write_length = write(out_fd, send_buf_p+buffer_ptr, read_length-buffer_ptr);
+                if ( write_length < 0)
                 {
                         if( errno == EAGAIN ){
+                            debug_log_output("EAGAIN");
                             continue;
                         }
                         debug_log_output("send() error.%d %s\n", errno,strerror(errno));
         		free(send_buf_p);       // Memory Free.
-                        close(in_fd);   // File Close.
+                        close(in_fd);   // File Close
+                        close(out_fd);
                         return ( -1 );
                 }
 
-                total_read_size += data_send_len;
-                buffer_ptr += data_send_len;
+                total_write_size += write_length;
+                buffer_ptr += write_length;
                 if ( content_length != 0 )
                 {
-                        debug_log_output("Streaming..  %lld / %lld ( %lld.%lld%% )\n", total_read_size, content_length, total_read_size * 100 / content_length,  (total_read_size * 1000 / content_length ) % 10 );
-                }
-                if ( total_read_size >= content_length)
-                {
+                    debug_log_output("Streaming..  %lld / %lld ( %lld.%lld%% )\n", 
+                      total_write_size, content_length, total_read_size * 100 / content_length,  (total_read_size * 1000 / content_length ) % 10 );
+                    if ( total_write_size >= content_length)
+                    {
                         debug_log_output("send() end.(content_length=%d)\n", content_length );
+                    }
                 }
         }
 	return 0;

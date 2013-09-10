@@ -310,11 +310,11 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             write(accept_socket, line_buf[i], strlen(line_buf[i]));
         }
         if( http_recv_info_p->isGet == 1 ){
-            copy_descriptors(sock, accept_socket,
+            return ( copy_descriptors(sock, accept_socket,
                             (off_t)content_length,
                             NULL ,
                             //(char*)http_recv_info_p->recv_uri,
-                            http_recv_info_p->range_start_pos);
+                            http_recv_info_p->range_start_pos));
         }
     }
     close(sock);

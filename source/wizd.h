@@ -119,8 +119,9 @@
 
 
 #define	HTTP_USER_AGENT		"User-agent:"
-#define	HTTP_RANGE			"Range:"
-#define	HTTP_HOST			"Host:"
+#define	HTTP_RANGE		"Range:"
+#define	HTTP_HOST		"Host:"
+#define HTTP_ACCEPT		"Accept:"
 
 #define	HTTP_OK 			"HTTP/1.0 200 OK\r\n"
 #define	HTTP_NOT_FOUND 		"HTTP/1.0 404 File Not Found\r\n"
@@ -191,29 +192,24 @@ typedef struct {
 // ==========================================================================
 typedef struct {
 	unsigned char 	recv_uri[FILENAME_MAX];		// 受信したURI(decoded)
-	unsigned char 	user_agent[256];			// 受信したUser-Agent
-	unsigned char	recv_host[256];				// 受信したホスト名
+	unsigned char 	user_agent[256];		// 受信したUser-Agent
+	unsigned char	recv_host[256];			// 受信したホスト名
 
-	unsigned char	recv_range[256];			// 受信した Range
+	unsigned char	recv_range[256];		// 受信した Range
 	off_t	range_start_pos;			// Rangeデータ 開始位置
 	off_t	range_end_pos;				// Rangeデータ 終了位置
-
-	unsigned char	mime_type[128];		//
+	unsigned char	mime_type[128];			//
 	unsigned char	send_filename[FILENAME_MAX];	// フルパス
+	unsigned char	action[128];			// ?action=の内容
+	int		page;				// ?page=で指定された表示ページ
 
+	unsigned char 	option[32];			// ?option=の内容
+	unsigned char	sort[32];			// ?sort=の内容
+	unsigned char 	focus[32];			// ?focus=の内容
+	unsigned char 	request_uri[FILENAME_MAX];	// 受信した生のURI
 
-	unsigned char	action[128];	// ?action=  の内容
-	int				page;			// ?page=	で指定された表示ページ
-
-	unsigned char 	option[32];		// ?option= の内容
-	unsigned char	sort[32];		// ?sort= の内容
-
-	unsigned char 	focus[32];		// ?focus= の内容
-
-	unsigned char 	request_uri[FILENAME_MAX];		// 受信した生のURI
-
-	int				flag_pc;		// クライアントが PC かどうか. 非0 = PC
-    int				isGet;			// GETなら1HEADなら2
+	int		flag_pc;			// クライアントが PC かどうか. 非0 = PC
+	int		isGet;				// GETなら1HEADなら2
 } HTTP_RECV_INFO;
 
 
@@ -447,7 +443,8 @@ extern void server_listen(void);
 // HTTP処理部
 extern void server_http_process(int accept_socket);
 
-
+// ヘッダ出力
+extern int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off_t content_length);
 
 // バッファリングしながら in_fd から out_fd へ データを転送
 extern int copy_descriptors(int in_fd,int out_fd,off_t content_length,JOINT_FILE_INFO_T *joint_file_info_p,off_t range_start_pos);

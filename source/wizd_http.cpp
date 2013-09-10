@@ -23,8 +23,9 @@
 #include <netinet/in.h>
 #include <dirent.h>
 #include "wizd.h"
+typedef enum {_OPENDIR = -2,_NOTFOUND = -1,_FILE = 0, _DIR = 1, _PLW = 3, _TSV = 4, _VOB = 5, _CGI=6} FILETYPES;
 static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info);
-static int http_file_check( HTTP_RECV_INFO *http_recv_info_p);
+static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p);
 static int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location);
 static int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info);
 int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max);
@@ -33,21 +34,21 @@ int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max);
 // **************************************************************************
 void 	server_http_process(int accept_socket)
 {
-    int					result;
+    FILETYPES		result;
     HTTP_RECV_INFO	http_recv_info;	//HTTP受信情報保存構造体
-    int				i;
-    int				flag_allow_user_agent_check;
+    int			i;
+    int			flag_allow_user_agent_check;
+    int                 ret;
     memset(&http_recv_info, 0, sizeof(http_recv_info));
     // ----------------------------------------
     // HTTP リクエストヘッダ受信
     // ----------------------------------------
     debug_log_output("HTTP Header receive start!\n");
-    result = http_header_receive(accept_socket,  &http_recv_info);
-    if ( result != 0 ){ // エラーチェック
+    ret = http_header_receive(accept_socket,  &http_recv_info);
+    if ( ret != 0 ){ // エラーチェック
         // エラーメッセージ
-        debug_log_output("http_header_receive() Error. result=%d\n", result);
+        debug_log_output("http_header_receive() Error. result=%d\n", ret);
         // ソケットクローズ
-        debug_log_output("CLOSELOCSE");
         close(accept_socket);
         return;
     }
@@ -87,10 +88,11 @@ void 	server_http_process(int accept_socket)
     }
     // クライアントがPCかどうか判断
     http_recv_info.flag_pc = (global_param.user_agent_pc[0]
-    && !strncmp(http_recv_info.user_agent, global_param.user_agent_pc
-    , strlen(global_param.user_agent_pc))
-    ) ? 1 : 0;
+                              && !strncmp(http_recv_info.user_agent, global_param.user_agent_pc
+                                          , strlen(global_param.user_agent_pc))
+                                         ) ? 1 : 0;
     debug_log_output("flag_pc: %d", http_recv_info.flag_pc);
+    //PROXY判定
     if (!strncmp(http_recv_info.recv_uri, "/-.-", 4)){
         // proxy
         if (http_proxy_response(accept_socket, &http_recv_info) < 0){
@@ -98,7 +100,7 @@ void 	server_http_process(int accept_socket)
             http_not_found_response(accept_socket, &http_recv_info);
         }
         // ソケットクローズ
-        close(accept_socket);
+        //close(accept_socket);
         return;
     }
     if (path_sanitize(http_recv_info.recv_uri, sizeof(http_recv_info.recv_uri)) == NULL){
@@ -118,13 +120,13 @@ void 	server_http_process(int accept_socket)
     //  種類に応じて分岐
     // ============================
     result = http_file_check(&http_recv_info);
-    if (result == -2){ // ディレクトリだが終端が '/' ではない
+    if (result == _OPENDIR){ // ディレクトリだが終端が '/' ではない
         char buffer[FILENAME_MAX];
         sprintf(buffer, "%s/", http_recv_info.recv_uri);
         http_redirect_response(accept_socket, &http_recv_info, buffer);
-    }else if ( result < 0 ){ // ファイルが見つからない
+    }else if ( result < _FILE ){ // ファイルが見つからない
         http_not_found_response(accept_socket, &http_recv_info);
-    }else if ( result == 0 ){ // ファイル実体ならば、実体転送。
+    }else if ( result == _FILE ){ // ファイル実体ならば、実体転送。
         // actionに、ImageViewerが指示されている？
         if ( strcasecmp(http_recv_info.action, "ImageView" ) == 0){
             // ----------------------------------------
@@ -150,9 +152,7 @@ void 	server_http_process(int accept_socket)
             http_file_response(accept_socket, &http_recv_info);
             debug_log_output("HTTP response end!\n");
         }
-    }else if ( result == 2 ){
-        // SVIファイル対応削除
-    }else if ( result == 3 ){
+    }else if ( result == _PLW ){
         // ---------------------------------------------
         // plw/uplファイル(`･ω･´)
         // リストファイルから、プレイリスト生成して返信
@@ -160,7 +160,7 @@ void 	server_http_process(int accept_socket)
         debug_log_output("HTTP wizd play list create and response start!\n");
         http_listfile_to_playlist_create(accept_socket, &http_recv_info);
         debug_log_output("HTTP wizd play list create and response end!\n");
-    }else if ( result == 5 ){
+    }else if ( result == _VOB ){
         // ---------------------------------------------
         // vobファイル 連結
         // vobを連結して返信
@@ -178,12 +178,12 @@ void 	server_http_process(int accept_socket)
             http_vob_file_response(accept_socket, &http_recv_info);
             debug_log_output("HTTP vob file response end!\n");
         }
-    }else if ( result == 6 ){
+    }else if ( result == _CGI ){
         // ---------------------------------------------
         // cgiファイル
         // cgiを実行して結果を返信
         // ---------------------------------------------
-        debug_log_output("HTTP CGI response start!\n");
+        debug_log_output("HTTP CGI response start! %d\n",accept_socket);
         http_cgi_response(accept_socket, &http_recv_info);
         debug_log_output("HTTP CGI response end!\n");
     }else{
@@ -207,12 +207,12 @@ void 	server_http_process(int accept_socket)
             // ファイルリストを生成して返信。
             // -------------------------------------
             debug_log_output("HTTP file menu create.\n");
-            http_menu(accept_socket, &http_recv_info, result == 1 ? 0 : 1);
+            http_menu(accept_socket, &http_recv_info, result == _DIR ? _FILE : _DIR);
             debug_log_output("HTTP file menu end.\n");
         }
     }
     // ソケットクローズ
-    close(accept_socket);
+    //close(accept_socket);
     return;
 }
 // **************************************************************************
@@ -416,7 +416,7 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
 //			 5:VOBファイル
 //			 6:CGIファイル
 // **************************************************************************
-static int http_file_check( HTTP_RECV_INFO *http_recv_info_p)
+static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p)
 {
     struct stat send_filestat={0};
     int result;
@@ -440,7 +440,8 @@ static int http_file_check( HTTP_RECV_INFO *http_recv_info_p)
     // ファイルあるかチェック。
     // ------------------------------------------------------------
     result = stat(http_recv_info_p->send_filename, &send_filestat);
-    debug_log_output("stat: result=%d, st_mode=0x%04X, S_ISREG=%d, S_ISDIR=%d\n", result, send_filestat.st_mode, S_ISREG(send_filestat.st_mode), S_ISDIR(send_filestat.st_mode) );
+    debug_log_output("stat: result=%d, st_mode=0x%04X, S_ISREG=%d, S_ISDIR=%d\n",
+        result, send_filestat.st_mode, S_ISREG(send_filestat.st_mode), S_ISDIR(send_filestat.st_mode) );
     // stat()の結果で分岐。
     if ( ( result == 0 ) && ( S_ISREG(send_filestat.st_mode) == 1 ) ){
         // ファイル実体と検知
@@ -456,30 +457,34 @@ static int http_file_check( HTTP_RECV_INFO *http_recv_info_p)
         if (( strcasecmp(file_extension, "plw") == 0  ) ||
             ( strcasecmp(file_extension, "m3u") == 0  ) ||
             ( strcasecmp(file_extension, "upl") == 0  ) ){
-            return ( 3 );	// plw/upl ファイル
+            return ( _PLW );	// plw/upl ファイル
         }else if ( strcasecmp(file_extension, "vob") == 0  ){
-            return ( 5 );	// vobファイル
+            return ( _VOB );	// vobファイル
         }else if ( strcasecmp(file_extension, "tsv") == 0  ){
-            return ( 4 );	// tsvファイル
+            return ( _TSV );	// tsvファイル
+        }else if ( strcasecmp(file_extension, "pl") == 0  ){
+            // CGIの実行が不許可なら、Not Found.
+            return ( global_param.flag_execute_cgi ? _CGI : _NOTFOUND );  // cgiファイ
         }else if ( strcasecmp(file_extension, "cgi") == 0  ){
             // CGIの実行が不許可なら、Not Found.
-            return ( global_param.flag_execute_cgi ? 6 : -1 );	// cgiファイル
+            return ( global_param.flag_execute_cgi ? _CGI : _NOTFOUND );	// cgiファイル
         }else if ( strcasecmp(file_extension, "php") == 0  ){
             // CGIの実行が不許可なら、Not Found.
-            return ( global_param.flag_execute_cgi ? 6 : -1 );  // cgiファイル
+            return ( global_param.flag_execute_cgi ? _CGI : _NOTFOUND );  // cgiファイル
         }else{
-            return ( 0 );	// File実体
+            return ( _FILE );	// File実体
         }
+    //ディレクトリチェック
     }else if ( ( result == 0 ) && ( S_ISDIR(send_filestat.st_mode) == 1 ) ){ // ディレクトリ
-        int len;
-        len = strlen(http_recv_info_p->recv_uri);
+        int len = strlen(http_recv_info_p->recv_uri);
         if (len > 0 && http_recv_info_p->recv_uri[len - 1] != '/'){
             // '/' で終端していないディレクトリ要求の場合...
-            return ( -2 );
+            return ( _OPENDIR );
         }
         // ディレクトリと検知
         debug_log_output("'%s' is Dir!!", http_recv_info_p->send_filename);
-        return ( 1 ) ;	// ディレクトリ
+        return ( _DIR ) ;	// ディレクトリ
+    //ファイルリストチェック
     }else{
         debug_log_output("stat() error\n", result);
         // ----------------------------------------------------------------------------
@@ -512,16 +517,16 @@ static int http_file_check( HTTP_RECV_INFO *http_recv_info_p)
             filename_to_extension(http_recv_info_p->send_filename, file_extension, sizeof(file_extension));
             debug_log_output("http_recv_info_p->send_filename='%s', file_extension='%s'\n", http_recv_info_p->send_filename, file_extension);
             check_file_extension_to_mime_type(file_extension, http_recv_info_p->mime_type,  sizeof(http_recv_info_p->mime_type));
-            return ( 0 );	// File実体
+            return ( _FILE );	// File実体
         }else{
             // -------------------------------------
             // File Not Found.
             // やっぱり、404にしよう。
             // -------------------------------------
-            return ( -1 ) ;
+            return ( _NOTFOUND ) ;
         }
     }
-    return ( 1 );
+    return ( _DIR );
 }
 // **************************************************************************
 // accept_socketから、１行(CRLFか、LF単独が現れるまで)受信

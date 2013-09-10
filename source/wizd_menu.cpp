@@ -2755,7 +2755,6 @@ void convert_language_code(const unsigned char *in, unsigned char *out, size_t l
     //=================================================
     // libnkf 実行
     //=================================================
-    debug_log_output( "[%s][%s]",out,nkf_option);
     nkf((char*)in, (char*)out, len, (char*)nkf_option);
     return;
 }
@@ -3315,9 +3314,13 @@ int http_index( int accept_socket , unsigned char* send_filename )
         strncat((char*)read_filename, "index.htm" , sizeof(read_filename) - strlen((char*)read_filename) );
         if( access( (char*)read_filename , 0 ) != 0 ){
             strncpy((char*)read_filename, (char*)document_path, sizeof( read_filename) );
-            strncat((char*)read_filename, "index.cgi" , sizeof(read_filename) - strlen((char*)read_filename) );
+            strncat((char*)read_filename, "index.php" , sizeof(read_filename) - strlen((char*)read_filename) );
             if( access( (char*)read_filename , 0 ) != 0 ){
-                return 0;
+                strncpy((char*)read_filename, (char*)document_path, sizeof( read_filename) );
+                strncat((char*)read_filename, "index.cgi" , sizeof(read_filename) - strlen((char*)read_filename) );
+                if( access( (char*)read_filename , 0 ) != 0 ){
+                   return 0;
+                }
             }
         }
     }

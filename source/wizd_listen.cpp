@@ -24,6 +24,8 @@
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <sys/epoll.h>  
+#include <error.h>
+#include <cerrno>
 
 #include "wizd.h"
 int volatile child_count = 0;
@@ -112,7 +114,8 @@ void	server_listen()
         // ====================
         nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
         if (nfds == -1) {
-            debug_log_output("epoll_pwait");
+            debug_log_output("epoll_pwaiti %s\n",strerror(errno));
+            continue;
             exit(EXIT_FAILURE);
         }
         //可能なファイルディスクリプタ一覧
@@ -249,7 +252,7 @@ void server_listen_main(ACCESS_INFO* ac_in)
     }else{
         // HTTP鯖として、仕事実行
         server_http_process(accept_socket);
-        close(accept_socket);
+        //close(accept_socket);
         debug_log_output("HTTP process end.\n");
         debug_log_output("=============================================================\n");
     }
