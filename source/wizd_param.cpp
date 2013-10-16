@@ -28,39 +28,42 @@ static void line_buffer_clearance(unsigned char *line_buf);
 // とりあえず知ってる限り書いておく。
 // ********************************************
 MIME_LIST_T mime_list[] = {
-//  {mime_name          ,file_extension ,   stream_type     ,   menu_file_type  },
-{(unsigned char*)"text/plain"     ,(unsigned char*)"txt"        ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
-{(unsigned char*)"text/html"      ,(unsigned char*)"htm"        ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
-{(unsigned char*)"text/html"      ,(unsigned char*)"html"       ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
-{(unsigned char*)"text/html"      ,(unsigned char*)"php"       ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
-{(unsigned char*)"text/html"      ,(unsigned char*)"pl"       ,   TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
-{(unsigned char*)"image/gif"      ,(unsigned char*)"gif"        ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
-{(unsigned char*)"image/jpeg"    ,(unsigned char*)"jpeg"        ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
-{(unsigned char*)"image/jpeg"    ,(unsigned char*)"jpg"         ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
-{(unsigned char*)"image/png"      ,(unsigned char*)"png"        ,   TYPE_NO_STREAM  ,   TYPE_IMAGE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"mpeg"       ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"mpg"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"m2p"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"hnl"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/x-msvideo",(unsigned char*)"avi"          ,       TYPE_STREAM     ,       TYPE_MOVIE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"vob"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/mpeg"     ,(unsigned char*)"vro"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },  /* add for DVD-RAM */
-{(unsigned char*)"video/quicktime",(unsigned char*)"mov"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/x-ms-wmv" ,(unsigned char*)"wmv"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"video/x-ms-wmx" ,(unsigned char*)"asf"        ,   TYPE_STREAM     ,   TYPE_MOVIE      },
-{(unsigned char*)"audio/x-mpeg"   ,(unsigned char*)"mp3"        ,   TYPE_STREAM     ,   TYPE_MUSIC      },
-{(unsigned char*)"audio/x-ogg"    ,(unsigned char*)"ogg"        ,   TYPE_STREAM     ,   TYPE_MUSIC      },
-{(unsigned char*)"video/mp4"     ,(unsigned char*)"mp4"           ,       TYPE_STREAM     ,       TYPE_MOVIE      },
-{(unsigned char*)"video/divx"    ,(unsigned char*)"divx"          ,       TYPE_STREAM     ,       TYPE_MOVIE      },
-{(unsigned char*)"video/flv"     ,(unsigned char*)"flv"           ,       TYPE_STREAM     ,       TYPE_MOVIE      },
-{(unsigned char*)"audio/x-ms-wma" ,(unsigned char*)"wma"        ,   TYPE_STREAM     ,   TYPE_MUSIC      },
-{(unsigned char*)"audio/x-wav"    ,(unsigned char*)"wav"        ,   TYPE_STREAM     ,   TYPE_MUSIC      },
-{(unsigned char*)"audio/ac3"      ,(unsigned char*)"ac3"        ,   TYPE_STREAM     ,   TYPE_MUSIC      },
-{(unsigned char*)"audio/x-m4a"    ,(unsigned char*)"m4a"        ,   TYPE_STREAM     ,   TYPE_MUSIC      },
-{(unsigned char*)"text/plain"     ,(unsigned char*)"plw"        ,   TYPE_STREAM     ,   TYPE_PLAYLIST   }, // Play List for wizd.
-{(unsigned char*)"text/plain"     ,(unsigned char*)"upl"        ,   TYPE_STREAM     ,   TYPE_PLAYLIST   }, // Uzu Play List拡張子でもOK. ファイル自身の互換は無し。
-{(unsigned char*)"text/plain"     ,(unsigned char*)"m3u"        ,   TYPE_STREAM     ,   TYPE_MUSICLIST  }, // m3u でもOK?
-{(unsigned char*)"text/plain"     ,(unsigned char*)"tsv"        ,   TYPE_STREAM     ,   TYPE_PSEUDO_DIR }, // tsv = 仮想ディレクトリ
+//  {mime_name                    ,file_extension           ,stream_type     ,   menu_file_type  },
+{(unsigned char*)"text/plain"     ,(unsigned char*)"txt"    ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"text/html"      ,(unsigned char*)"htm"    ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"text/html"      ,(unsigned char*)"html"   ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"text/html"      ,(unsigned char*)"php"    ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"text/html"      ,(unsigned char*)"pl"     ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   },
+{(unsigned char*)"image/gif"      ,(unsigned char*)"gif"    ,TYPE_NO_STREAM  ,   TYPE_IMAGE      },
+{(unsigned char*)"image/jpeg"     ,(unsigned char*)"jpeg"   ,TYPE_NO_STREAM  ,   TYPE_IMAGE      },
+{(unsigned char*)"image/jpeg"     ,(unsigned char*)"jpg"    ,TYPE_NO_STREAM  ,   TYPE_IMAGE      },
+{(unsigned char*)"image/png"      ,(unsigned char*)"png"    ,TYPE_NO_STREAM  ,   TYPE_IMAGE      },
+{(unsigned char*)"image/x-icon"   ,(unsigned char*)"ico"    ,TYPE_NO_STREAM  ,   TYPE_IMAGE      },
+{(unsigned char*)"video/mpeg"     ,(unsigned char*)"mpeg"   ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/mpeg"     ,(unsigned char*)"mpg"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/mpeg"     ,(unsigned char*)"m2p"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/mpeg"     ,(unsigned char*)"hnl"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/x-msvideo",(unsigned char*)"avi"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/mpeg"     ,(unsigned char*)"vob"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/mpeg"     ,(unsigned char*)"vro"    ,TYPE_STREAM     ,   TYPE_MOVIE      },  /* add for DVD-RAM */
+{(unsigned char*)"video/quicktime",(unsigned char*)"mov"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/x-ms-wmv" ,(unsigned char*)"wmv"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/x-ms-wmx" ,(unsigned char*)"asf"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"audio/x-mpeg"   ,(unsigned char*)"mp3"    ,TYPE_STREAM     ,   TYPE_MUSIC      },
+{(unsigned char*)"audio/x-ogg"    ,(unsigned char*)"ogg"    ,TYPE_STREAM     ,   TYPE_MUSIC      },
+{(unsigned char*)"video/mp4"      ,(unsigned char*)"mp4"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/divx"     ,(unsigned char*)"divx"   ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"video/flv"      ,(unsigned char*)"flv"    ,TYPE_STREAM     ,   TYPE_MOVIE      },
+{(unsigned char*)"audio/x-ms-wma" ,(unsigned char*)"wma"    ,TYPE_STREAM     ,   TYPE_MUSIC      },
+{(unsigned char*)"audio/x-wav"    ,(unsigned char*)"wav"    ,TYPE_STREAM     ,   TYPE_MUSIC      },
+{(unsigned char*)"audio/ac3"      ,(unsigned char*)"ac3"    ,TYPE_STREAM     ,   TYPE_MUSIC      },
+{(unsigned char*)"audio/x-m4a"    ,(unsigned char*)"m4a"    ,TYPE_STREAM     ,   TYPE_MUSIC      },
+{(unsigned char*)"text/plain"     ,(unsigned char*)"plw"    ,TYPE_STREAM     ,   TYPE_PLAYLIST   }, // Play List for wizd.
+{(unsigned char*)"text/plain"     ,(unsigned char*)"upl"    ,TYPE_STREAM     ,   TYPE_PLAYLIST   }, // Uzu Play List拡張子でもOK. ファイル自身の互換は無し。
+{(unsigned char*)"text/plain"     ,(unsigned char*)"m3u"    ,TYPE_STREAM     ,   TYPE_MUSICLIST  }, // m3u でもOK?
+{(unsigned char*)"text/plain"     ,(unsigned char*)"tsv"    ,TYPE_STREAM     ,   TYPE_PSEUDO_DIR }, // tsv = 仮想ディレクトリ
+{(unsigned char*)"text/javascript",(unsigned char*)"js"     ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   }, //JavaScript
+{(unsigned char*)"text/css"       ,(unsigned char*)"css"    ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   }, //CSS
 {NULL, NULL, (-1), (-1) }
 };
 // ********************************************

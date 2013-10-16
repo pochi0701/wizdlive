@@ -1,11 +1,11 @@
 // ==========================================================================
-//code=EUC	tab=4
+//code=UTF-8	tab=4
 //
 // wizd:	MediaWiz Server daemon.
 //
 // 		wizd_send_file.c
-//											$Revision: 1.7 $
-//											$Date: 2003/12/21 03:21:10 $
+//						$Revision: 1.0 $
+//						$Date: 2013/10/15 13:41:10 $
 //
 //	すべて自己責任でおながいしまつ。
 //  このソフトについてVertexLinkに問い合わせないでください。
@@ -25,12 +25,12 @@
 #include <dirent.h>
 #include <error.h>
 #include <cerrno>
+#include <sys/epoll.h>
 #include "wizd.h"
 
 static int http_file_send(int accept_socket, unsigned char *filename, off_t content_length, off_t range_start_pos );
 // 2004/08/13 Update end
 static int next_file(int *in_fd_p, JOINT_FILE_INFO_T *joint_file_info_p);
-
 
 
 int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off_t content_length)
@@ -161,6 +161,255 @@ static int http_file_send(int accept_socket, unsigned char *filename, off_t cont
 	// 正常終了
 	return 0;
 }
+/////////////////////////////////////////////////////////////////////////////
+COPY_QUEUE    queue_copy[MAX_QUEUE];
+int           queue_num;
+int           queue_root;
+/////////////////////////////////////////////////////////////////////////////
+void   queue_init(void)
+{
+     for( int i = 0 ; i < MAX_QUEUE ; i++ )
+     {
+         queue_copy[i].prev = -1;
+         queue_copy[i].next = -1;
+         queue_copy[i].done = 1;
+     }
+     queue_num  = 0;
+     queue_root = -1;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//CUE追加
+int  enqueue_memory(int out_fd, off_t content_length, unsigned char* buffer)
+{
+    COPY_QUEUE* queue;
+    int queue_end=-1;
+    int ptr;
+    //QUEUEが満杯の場合にはとにかく送出する
+    while( queue_num>=MAX_QUEUE){
+        queue_do_copy();
+    }
+    if( queue_root == -1 ){
+        queue_root = 0;
+        queue_end = queue_root;
+        queue_copy[queue_end].prev = -1;
+        queue_copy[queue_end].next = -1;
+    }else{
+        //queue_rootから最後を探す
+        ptr = queue_root;
+        //最終queue検索
+        for( int i = 0 ; i < MAX_QUEUE ; i++ ){
+            if( queue_copy[ptr].next == -1){
+                queue_end = (i+1)%MAX_QUEUE;
+                //最終queueに繋げる要素を検索
+                for( int j = 0 ; j < MAX_QUEUE ; j++ ){
+                    if( queue_copy[queue_end].done == 1 ){
+                        queue_copy[queue_end].prev = ptr;
+                        queue_copy[queue_end].next = -1;
+                        queue_copy[ptr].next       = queue_end;
+                        break;
+                    }
+                    queue_end = (queue_end+1)%MAX_QUEUE;
+                }
+                //見つかったら終了
+                if( queue_copy[queue_end].done == 1 ){
+                    break;
+                }else{
+                    debug_log_output("NO MORE QUEUE CAN ASSIGN");
+                    return (-1);
+                }
+            }else{
+                ptr = queue_copy[ptr].next;
+            }
+        }
+    }
+    queue = &queue_copy[queue_end];
+    // ======================
+    // 送信バッファを確保
+    // ======================
+    queue->send_buf_p = buffer;
+    queue->in_fd          = -1;
+    queue->in_enabled     = false;
+    queue->out_fd         = out_fd;
+    queue->out_enabled    = false;
+    queue->content_length = content_length;
+    queue->total_read_size      = content_length;
+    queue->total_write_size     = 0;
+    queue->current_write_size     = 0;
+    queue->done           = 0;
+    queue_num += 1;
+    return 0;
+}
+/////////////////////////////////////////////////////////////////////////////
+//CUE追加
+int  enqueue(int in_fd, int out_fd, off_t content_length)
+{
+    COPY_QUEUE* queue;
+    int queue_end=-1;
+    int ptr;
+    //QUEUEが満杯の場合にはとにかく送出する
+    while( queue_num>=MAX_QUEUE){
+        queue_do_copy();
+    }
+    if( queue_root == -1 ){
+        queue_root = 0;
+        queue_end = queue_root;
+        queue_copy[queue_end].prev = -1;
+        queue_copy[queue_end].next = -1;
+    }else{
+        //queue_rootから最後を探す
+        ptr = queue_root;
+        //最終queue検索
+        for( int i = 0 ; i < MAX_QUEUE ; i++ ){
+            if( queue_copy[ptr].next == -1){
+                queue_end = (i+1)%MAX_QUEUE;
+                //最終queueに繋げる要素を検索
+                for( int j = 0 ; j < MAX_QUEUE ; j++ ){
+                    if( queue_copy[queue_end].done == 1 ){
+                        queue_copy[queue_end].prev = ptr;
+                        queue_copy[queue_end].next = -1;
+                        queue_copy[ptr].next       = queue_end;
+                        break;
+                    }
+                    queue_end = (queue_end+1)%MAX_QUEUE;
+                }
+                //見つかったら終了
+                if( queue_copy[queue_end].done == 1 ){
+                    break;
+                }else{
+                    debug_log_output("NO MORE QUEUE CAN ASSIGN");
+                    return (-1);
+                }
+            }else{
+                ptr = queue_copy[ptr].next;
+            }
+        }
+    }
+    queue = &queue_copy[queue_end];
+    // ======================
+    // 送信バッファを確保
+    // ======================
+    queue->send_buf_p = (unsigned char*)malloc(SEND_BUFFER_SIZE);
+    if ( queue->send_buf_p == NULL )
+    {
+        debug_log_output("malloc() error.\n");
+        return (-1);
+    }
+    queue->in_fd          = in_fd;
+    queue->in_enabled     = true;
+    queue->out_fd         = out_fd;
+    queue->out_enabled    = false;
+    queue->content_length = content_length;
+    queue->total_read_size      = 0;
+    queue->total_write_size     = 0;
+    queue->current_read_size    = 0;
+    queue->current_write_size     = 0;
+    queue->done           = 0;
+    queue_num += 1;
+    //add_epoll(in_fd, EPOLLIN );
+    add_epoll(out_fd, EPOLLOUT );
+    return 0;
+}
+/////////////////////////////////////////////////////////////////////////////
+//CUE削除
+int  dequeue(int num)
+{
+     if( queue_copy[num].prev == -1 ){
+         queue_root = queue_copy[num].next;
+         if( queue_root >= 0 ){
+             queue_copy[queue_root].prev = -1;
+         }
+     }else if( queue_copy[num].next == -1 ){
+         queue_copy[queue_copy[num].prev].next = -1;
+     }else{
+         queue_copy[queue_copy[num].prev].next = queue_copy[num].next;
+         queue_copy[queue_copy[num].next].prev = queue_copy[num].prev;
+     }
+     //del_epoll( queue_copy[num].in_fd);
+     //del_epoll( queue_copy[num].out_fd);
+     queue_copy[num].in_fd =0;
+     queue_copy[num].in_enabled = false;
+     queue_copy[num].out_fd =0;
+     queue_copy[num].out_enabled = false;
+     queue_copy[num].done = 1;
+     queue_num -= 1;
+     return 0;
+}
+/////////////////////////////////////////////////////////////////////////////
+//queue個数
+int  queue_get_num(void)
+{
+     return queue_num;
+}
+/////////////////////////////////////////////////////////////////////////////
+//CUEコピー
+int  queue_check(int socket)
+{
+     int ptr = queue_root;
+     int flag = 0;
+     //実行可能な場合
+     if( queue_num > 0 ){
+         //要素を順に実行。
+         while( ptr >= 0 ){
+            //エラーまたは正常終了
+            //if( queue_copy[ptr].in_fd == socket ){
+            //    queue_copy[ptr].in_enabled = true;
+            //    break;
+            //}
+            if( queue_copy[ptr].out_fd == socket ){
+                queue_copy[ptr].out_enabled = true;
+                flag = 1;
+                break;
+            }
+            //最後のcueが削除されても大丈夫
+            ptr = queue_copy[ptr].next;
+         }
+         return flag;
+     }else{
+         return (-1);
+     }
+}
+/////////////////////////////////////////////////////////////////////////////
+//CUEコピー
+int  queue_do_copy(void)
+{
+     int ptr = queue_root;
+     //実行可能な場合
+     if( queue_num > 0 ){
+         //要素を順に実行。
+         while( ptr >= 0 ){
+            //エラーまたは正常終了
+            if( queue_copy[ptr].in_enabled && queue_copy[ptr].out_enabled ){
+                if( copy_body(&queue_copy[ptr]) <= 0 ){
+                    dequeue(ptr);
+                }
+            }
+            //最後のcueが削除されても大丈夫
+            ptr = queue_copy[ptr].next;
+         }
+         return 0;
+     }else{
+         return (-1);
+     }
+}
+/////////////////////////////////////////////////////////////////////////////
+// データコピー登録
+int copy_descriptors(int in_fd,
+                     int out_fd,
+                     off_t content_length,
+                     JOINT_FILE_INFO_T *joint_file_info_p,
+                     off_t range_start_pos)
+{
+#ifdef linux
+        //ノンブロッキングモードに設定
+        set_blocking_mode(in_fd, 1); /* non_blocking */
+        set_blocking_mode(out_fd,1); /* non_blocking */
+#endif
+        enqueue(in_fd,out_fd,content_length);
+        //queue_do_copy();
+        return 0;
+}
+#if 0
 // **************************************************************************
 // データコピーループ
 // **************************************************************************
@@ -172,12 +421,6 @@ int copy_descriptors(int in_fd,
 {
 
         unsigned char   *send_buf_p;
-        off_t                  read_length;
-        int                     write_length;
-        int                     buffer_ptr;
-        off_t                  total_write_size=0;
-        off_t                  total_read_size=0;
-        off_t                  target_read_size=0;
         // ======================
         // 送信バッファを確保
         // ======================
@@ -194,86 +437,128 @@ int copy_descriptors(int in_fd,
 #endif
         // 一応バッファクリア
         memset(send_buf_p, 0, SEND_BUFFER_SIZE);
+        COPY_QUEUE* queue = &queue_copy[0];
+        queue->in_fd          = in_fd;
+        queue->in_enabled     = true;
+        queue->out_fd         = out_fd;
+        queue->out_enabled    = true;
+        queue->content_length = content_length;
+        queue->send_buf_p     = send_buf_p;
+        queue->total_read_size      = 0;
+        queue->total_write_size     = 0;
+        queue->current_read_size    = 0;
+        queue->current_write_size     = 0;
+        queue->done           = 0;
+        copy_body( queue );
+        return 0;
+}
+#endif
+// -1:ERROR  0:END 1:EAGAIN
+int copy_body(COPY_QUEUE *qc)
+//int in_fd, int out_fd, int total_read_size,int total_write_size,int current_write_size, off_t content_length, unsigned char* send_buf_p )
+{
+        int                    read_length=0;
+        int                    write_length=0;
+        int                    target_read_size=0;
         // ================
         // 実体転送開始
         // ================
-        while ( 1 )
+        while ( qc->in_enabled || qc->out_enabled )
         {
-                if( total_read_size == total_write_size ){
+            if( qc->in_enabled ){
+                if( qc->current_read_size == qc->current_write_size ){
                     // 目標readサイズ計算 content_length==0も考慮
-                    if ( (content_length - total_write_size) > SEND_BUFFER_SIZE || content_length == 0)
+                    if ( (qc->content_length - qc->total_write_size) > SEND_BUFFER_SIZE || qc->content_length == 0)
                     {
                         target_read_size = SEND_BUFFER_SIZE;
                     }
                     else
                     {
-                        target_read_size = (size_t)(content_length - total_write_size);
+                        target_read_size = (size_t)(qc->content_length - qc->total_write_size);
                     }
 
 
                     // ファイルからデータを読み込む。
-                    read_length = read(in_fd, send_buf_p, target_read_size);
+                    read_length = read(qc->in_fd, qc->send_buf_p, target_read_size);
                     //read end
                     if ( read_length == 0 )
                     {
-                       //読み終わった。contents_length変えるべき
-                       //if (next_file(&in_fd, joint_file_info_p)){
-                       //        debug_log_output("EOF detect.\n");
-                       //        break;
-                       //}
-                       debug_log_output( "read end");
-                       close(in_fd);
-                       close(out_fd);
-                       free(send_buf_p);
-                       send_buf_p = 0;
-                       return 0;
+                        //読み終わった。contents_length変えるべき
+                        //if (next_file(&in_fd, joint_file_info_p)){
+                        //        debug_log_output("EOF detect.\n");
+                        //        break;
+                        //}
+                        close(qc->in_fd);
+                        del_epoll( qc->out_fd);
+                        close(qc->out_fd);
+                        free(qc->send_buf_p);
+                        qc->send_buf_p = 0;
+                        return 0;
                     //read error
                     }else if ( read_length < 0 ){
-                       close(in_fd);
-                       close(out_fd);
-                       free(send_buf_p);
-                       debug_log_output("read error");
-                       return ( -1 );
+                        if( errno == EAGAIN ){
+                            qc->in_enabled = false;
+                            debug_log_output("READ EAGAIN");
+                            return 1;
+                        }
+                        close(qc->in_fd);
+                        del_epoll( qc->out_fd);
+                        close(qc->out_fd);
+                        free(qc->send_buf_p);
+                        qc->send_buf_p = 0;
+                        debug_log_output("read error");
+                        return ( -1 );
+                    //読み込み正常終了
                     }else{
-                       total_read_size += read_length;
+                        qc->total_read_size += read_length;
+                        qc->current_read_size = read_length;
+                        qc->current_write_size = 0;
                     }
-                    buffer_ptr = 0;
-                }else if ( total_read_size < total_write_size ){
+                }else if ( qc->total_read_size < qc->total_write_size ){
                     debug_log_output( "read write error");
-                    close(in_fd);
-                    close(out_fd);
-                    free(send_buf_p);
+                    close(qc->in_fd);
+                    del_epoll( qc->out_fd);
+                    close(qc->out_fd);
+                    free(qc->send_buf_p);
+                    qc->send_buf_p = 0;
                     return ( -1 );
                 }
-                    
+            }
+            if( qc->out_enabled ){       
                 // SOCKET にデータを送信
-                write_length = write(out_fd, send_buf_p+buffer_ptr, read_length-buffer_ptr);
+                write_length = write(qc->out_fd, qc->send_buf_p+qc->current_write_size, qc->current_read_size-qc->current_write_size);
                 if ( write_length < 0)
                 {
-                        if( errno == EAGAIN ){
-                            debug_log_output("EAGAIN");
-                            continue;
-                        }
-                        debug_log_output("send() error.%d %s\n", errno,strerror(errno));
-        		free(send_buf_p);       // Memory Free.
-                        close(in_fd);   // File Close
-                        close(out_fd);
-                        return ( -1 );
+                    if( errno == EAGAIN ){
+                        qc->out_enabled = false;
+                        debug_log_output("WRITE EAGAIN");
+                        return 1;
+                    }
+                    debug_log_output("send() error.%d %s\n", errno,strerror(errno));
+        	    free(qc->send_buf_p);       // Memory Free.
+                    qc->send_buf_p=0;
+                    close(qc->in_fd);   // File Close
+                    del_epoll( qc->out_fd);
+                    close(qc->out_fd);
+                    return ( -1 );
                 }
-
-                total_write_size += write_length;
-                buffer_ptr += write_length;
-                if ( content_length != 0 )
+                //書き込み更新
+                qc->total_write_size += write_length;
+                qc->current_write_size += write_length;
+                if ( qc->content_length != 0 )
                 {
                     debug_log_output("Streaming..  %lld / %lld ( %lld.%lld%% )\n", 
-                      total_write_size, content_length, total_read_size * 100 / content_length,  (total_read_size * 1000 / content_length ) % 10 );
-                    if ( total_write_size >= content_length)
-                    {
-                        debug_log_output("send() end.(content_length=%d)\n", content_length );
-                    }
+                                                   qc->total_write_size, qc->content_length,
+                                                   qc->total_read_size * 100 / qc->content_length,
+                                                   (qc->total_read_size * 1000 / qc->content_length ) % 10 );
+                    //if ( qc->total_write_size >= qc->content_length)
+                    //{
+                    //    debug_log_output("send() end.(content_length=%d)\n", qc->content_length );
+                    //}
                 }
+            }
         }
-	return 0;
+	return 1;
 }
 /////////////////////////////////////////////////////////////////////////////////////////
 static int next_file(int *in_fd_p, JOINT_FILE_INFO_T *joint_file_info_p)

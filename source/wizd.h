@@ -122,8 +122,10 @@
 #define	HTTP_RANGE		"Range:"
 #define	HTTP_HOST		"Host:"
 #define HTTP_ACCEPT		"Accept:"
+#define HTTP_CONTENT_LENGTH1	"Content-Length:"
+#define HTTP_CONTENT_TYPE1      "Content-TYpe:"
 
-#define	HTTP_OK 			"HTTP/1.0 200 OK\r\n"
+#define	HTTP_OK 		"HTTP/1.0 200 OK\r\n"
 #define	HTTP_NOT_FOUND 		"HTTP/1.0 404 File Not Found\r\n"
 #define HTTP_NOT_FOUND1         "HTTP/1.x 404 Not Found"
 #define HTTP_CONTENT_LENGTH	"Content-Length: %lu\r\n"
@@ -198,6 +200,8 @@ typedef struct {
 	unsigned char	recv_range[256];		// 受信した Range
 	off_t	range_start_pos;			// Rangeデータ 開始位置
 	off_t	range_end_pos;				// Rangeデータ 終了位置
+        unsigned char   content_length[32];		// Content-Length
+        unsigned char   content_type[128];		// PUTのためのContent_type
 	unsigned char	mime_type[128];			//
 	unsigned char	send_filename[FILENAME_MAX];	// フルパス
 	unsigned char	action[128];			// ?action=の内容
@@ -209,7 +213,7 @@ typedef struct {
 	unsigned char 	request_uri[FILENAME_MAX];	// 受信した生のURI
 
 	int		flag_pc;			// クライアントが PC かどうか. 非0 = PC
-	int		isGet;				// GETなら1HEADなら2
+	int		isGet;				// GETなら1HEADなら2POSTなら3
 } HTTP_RECV_INFO;
 
 
@@ -493,8 +497,33 @@ extern void convert_language_code(const unsigned char *in, unsigned char *out, s
 extern int add_epoll( int socket, int rwtrigger );
 //EPOLL削除
 extern int del_epoll( int socket ); 
-//indexファイルを返す
-extern int http_index( int accept_socket , unsigned char* send_filename );
+typedef struct
+{
+        int             in_fd;
+        int             in_enabled;
+        int             out_fd;
+        int             out_enabled;
+        unsigned char   *send_buf_p;
+        int             current_write_size;
+        int             current_read_size;
+        off_t           total_read_size;
+        off_t           total_write_size;
+        off_t           content_length;
+        bool            done;
+        int             prev;
+        int             next;
+} COPY_QUEUE;
+#define MAX_QUEUE 100
+void queue_init(void);
+int  enqueue(int in_fd, int out_fd, off_t content_length);//CUE追加
+int  enqueue_memory(int out_fd, off_t content_length,unsigned char* buffer);
+int  dequeue(int num);                                    //CUE削除
+int  queue_get_num(void);                                 //queue個数
+int  queue_check(int socket);
+int  queue_do_copy(void);                                 //CUEコピー
+int  copy_body(COPY_QUEUE* ci);
+int add_epoll( int socket, int rwtrigger );
+int del_epoll( int socket );
 // ========================================================
 // 文字コード変換。
 // libnkfをそのまま使用。作者様に感謝ヽ(´ー｀)ノ

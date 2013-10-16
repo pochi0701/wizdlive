@@ -19,6 +19,8 @@
 #include <grp.h>
 #include <sys/types.h>
 #include  <sys/wait.h>
+#include <errno.h>
+#include <cerrno>
 #include "wizd.h"
 static void print_help(void);
 static void daemon_init(void);
@@ -177,27 +179,32 @@ static void set_user_id(unsigned char *user, unsigned char *group)
     struct passwd 	*user_passwd;
     struct group 	*user_group;
     // rootかチェック
-    if ( getuid() != 0 )
-    return;
+    if ( getuid() != 0 ){
+        return;
+    }
     // userが指定されているかチェック
-    if ( strlen(user) <= 0 )
-    return;
+    if ( strlen(user) <= 0 ){
+        return;
+    }
     // userIDをGet.
     user_passwd = getpwnam( (const char*)user );
     if ( user_passwd == NULL )
     {
         return;
     }
-    // setuid実行
-    setuid ( user_passwd->pw_uid );
     // groupはオプション。指定があれば設定する。
     if ( strlen(group) > 0 )
     {
         user_group = getgrnam( (const char*)group );
-        if ( user_group == NULL )
-        return;
-        setgid( user_group->gr_gid );
+        if ( user_group == NULL ){
+            return;
+        }
+        // setgid実行
+        setgid ( user_group->gr_gid );
     }
+    // rootで両方の情報をとっておき、かつsetgidを先にしないと失敗する
+    // setuid実行
+    setuid ( user_passwd->pw_uid );
     return;
 }
 // **************************************************************************

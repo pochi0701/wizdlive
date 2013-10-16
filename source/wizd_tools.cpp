@@ -1078,7 +1078,7 @@ void debug_log_output(const char *fmt, ...)
     fclose( fp );
     return;
 #else
-    IGNORE_PARAMETER(fmt);
+    //IGNORE_PARAMETER(fmt);
 #endif
 }
 // **************************************************************************

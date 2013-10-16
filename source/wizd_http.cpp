@@ -26,6 +26,7 @@
 typedef enum {_OPENDIR = -2,_NOTFOUND = -1,_FILE = 0, _DIR = 1, _PLW = 3, _TSV = 4, _VOB = 5, _CGI=6} FILETYPES;
 static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info);
 static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p);
+static FILETYPES http_index( HTTP_RECV_INFO * http_recv_infp_p );
 static int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location);
 static int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info);
 int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max);
@@ -190,14 +191,24 @@ void 	server_http_process(int accept_socket)
         // ----------------------------------------
         // ディレクトリ 内にindex.html or index.htm or index.cgi があったら、そちらを表示する。
         // ----------------------------------------
-        if( http_index( accept_socket , (unsigned char*)http_recv_info.send_filename ) ){
-            return;
-        }
+        result = http_index( &http_recv_info );
+        if( result == _FILE ){
+            // ----------------------------------------
+            // ファイルの実体
+            // HTTPリクエストヘッダに従ってデータを返信。
+            // ----------------------------------------
+            debug_log_output("HTTP response start!\n");
+            http_file_response(accept_socket, &http_recv_info);
+            debug_log_output("HTTP response end!\n");
+        }else if ( result == _CGI ){
+            debug_log_output("HTTP CGI response start! %d\n",accept_socket);
+            http_cgi_response(accept_socket, &http_recv_info);
+            debug_log_output("HTTP CGI response end!\n"); 
         // ----------------------------------------
         // ディレクトリ
         // ----------------------------------------
         // actionに、OptionMenuが指示されている？
-        if ( strcasecmp(http_recv_info.action, "OptionMenu" ) == 0){
+        }else if ( strcasecmp(http_recv_info.action, "OptionMenu" ) == 0){
             debug_log_output("HTTP Option menu create.\n");
             http_option_menu(accept_socket, &http_recv_info);
             debug_log_output("HTTP Option menu end.\n");
@@ -214,6 +225,45 @@ void 	server_http_process(int accept_socket)
     // ソケットクローズ
     //close(accept_socket);
     return;
+}
+/////////////////////////////////////////////////////////////////////////////////
+FILETYPES http_index( HTTP_RECV_INFO* http_recv_info_p )
+{
+    unsigned char       document_path[MYFILENAME_MAX];
+    unsigned char       read_filename[MYFILENAME_MAX];
+    //Path Normalize.
+    strncpy((char*)document_path, (char*)http_recv_info_p->send_filename, sizeof(document_path) );
+    if ( document_path[ strlen((char*)document_path)-1 ] != DELIMITER[0] ){// 最後が'/'じゃなかったら、'/'を追加
+        strncat((char*)document_path, DELIMITER, sizeof(document_path) -strlen((char*)document_path) );
+    }
+    // ----------------------------------------------
+    // document_root/index.* のフルパス生成
+    // ----------------------------------------------
+    snprintf((char*)read_filename, sizeof( read_filename),"%sindex.html",(char*)document_path );
+    if( access( (char*)read_filename , 0 ) == 0 ){
+         strcat(http_recv_info_p->request_uri,"index.html");
+         strcpy(http_recv_info_p->send_filename,read_filename);
+         return _FILE;
+    }
+    snprintf((char*)read_filename, sizeof( read_filename),"%sindex.htm",(char*)document_path );
+    if( access( (char*)read_filename , 0 ) == 0 ){
+         strcat(http_recv_info_p->request_uri,"index.htm");
+         strcpy(http_recv_info_p->send_filename,read_filename);
+         return _FILE;
+    }
+    snprintf((char*)read_filename, sizeof( read_filename),"%sindex.php",(char*)document_path );
+    if( access( (char*)read_filename , 0 ) == 0 ){
+         strcat(http_recv_info_p->request_uri,"index.php");
+         strcpy(http_recv_info_p->send_filename,read_filename);
+         return _CGI;
+    }
+    snprintf((char*)read_filename, sizeof( read_filename),"%sindex.cgi",(char*)document_path );
+    if( access( (char*)read_filename , 0 ) == 0 ){
+         strcat(http_recv_info_p->request_uri,"index.cgi");
+         strcpy(http_recv_info_p->send_filename,read_filename);
+         return _CGI;
+    }
+    return _DIR;
 }
 // **************************************************************************
 // HTTPヘッダを受信して解析する。
@@ -261,6 +311,8 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
                 http_recv_info_p->isGet = 1;
             }else if ( strstr(line_buf, "HEAD") != NULL ){
                 http_recv_info_p->isGet = 2;
+            }else if ( strstr(line_buf, "POST") != NULL ){
+                http_recv_info_p->isGet = 3;
             }else{
                 http_recv_info_p->isGet = 0;
             }
@@ -394,12 +446,29 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
         }
         // Hostあるかチェック
         if ( strncasecmp(line_buf, HTTP_HOST,	strlen(HTTP_HOST) ) == 0 ){
-            debug_log_output("%s Detect.\n", HTTP_HOST);
             // ':' より前を切る。
             cut_before_character(line_buf, ':');
             cut_first_character(line_buf, ' ');
             strncpy(http_recv_info_p->recv_host, line_buf, sizeof(http_recv_info_p->recv_host));
-            debug_log_output("%s '%s'", HTTP_HOST, http_recv_info_p->recv_host);
+            debug_log_output("%s Detect. %s '%s'", HTTP_HOST, HTTP_HOST, http_recv_info_p->recv_host);
+            continue;
+        }
+        // Content-Lengthあるかチェック
+        if ( strncasecmp(line_buf, HTTP_CONTENT_LENGTH1, strlen(HTTP_CONTENT_LENGTH1) ) == 0 ){
+            // ':' より前を切る。
+            cut_before_character(line_buf, ':');
+            cut_first_character(line_buf, ' ');
+            strncpy(http_recv_info_p->content_length, line_buf, sizeof(http_recv_info_p->content_length));
+            debug_log_output("%s Detect. %s '%s'", HTTP_CONTENT_LENGTH1, HTTP_CONTENT_LENGTH1, http_recv_info_p->content_length);
+            continue;
+        }
+        // Content-TYPEあるかチェック
+        if ( strncasecmp(line_buf, HTTP_CONTENT_TYPE1, strlen(HTTP_CONTENT_TYPE1) ) == 0 ){
+            // ':' より前を切る。
+            cut_before_character(line_buf, ':');
+            cut_first_character(line_buf, ' ');
+            strncpy(http_recv_info_p->content_type, line_buf, sizeof(http_recv_info_p->content_type));
+            debug_log_output("%s Detect. %s '%s'", HTTP_CONTENT_TYPE1, HTTP_CONTENT_TYPE1, http_recv_info_p->content_type);
             continue;
         }
     }

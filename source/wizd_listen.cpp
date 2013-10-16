@@ -42,7 +42,6 @@ int                 epfd;                           // EPOLL FileDescriptor
 void	server_listen()
 {
     int        		ret;
-    //int       	pid;
     int			listen_socket;			// 待ち受けSocket
     int			accept_socket;			// 接続Socket
     struct sockaddr_in  saddr;				// サーバソケットアドレス構造体
@@ -105,6 +104,8 @@ void	server_listen()
         exit(1);
     }
     memset(&events, 0, sizeof(events));
+    //queue初期化
+    queue_init();
     //レベルトリガー
     add_epoll(listen_socket, EPOLLIN );
     while( 1 )
@@ -114,7 +115,6 @@ void	server_listen()
         // ====================
         nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
         if (nfds == -1) {
-            debug_log_output("epoll_pwaiti %s\n",strerror(errno));
             continue;
             exit(EXIT_FAILURE);
         }
@@ -128,14 +128,18 @@ void	server_listen()
                     continue;           // 最初に戻る。
                 }
                 set_blocking_mode(accept_socket,1);//NON_BLOCKING_MODE
-                //エッジトリガー
-                add_epoll(accept_socket, EPOLLIN | EPOLLET);
+                //xxエッジトリガー->レベルトリガ
+                add_epoll(accept_socket, EPOLLIN );
             } else {
-                del_epoll((unsigned int)events[n].data.fd);
-                // 2004/08/27 Add end
-                ac_in.accept_socket = (unsigned int)events[n].data.fd;
-                ac_in.caddr = caddr;
-                server_listen_main(&ac_in);
+                if( queue_check(events[n].data.fd) == 1 ){
+                    queue_do_copy();
+                }else{
+                    // 2004/08/27 Add end
+                    del_epoll(events[n].data.fd); 
+                    ac_in.accept_socket = (unsigned int)events[n].data.fd;
+                    ac_in.caddr = caddr;
+                    server_listen_main(&ac_in);
+                }
             }
         }
     }
@@ -153,7 +157,7 @@ int add_epoll( int socket, int rwtrigger )
     ev.data.fd = socket;
     /* ソケットをepollに追加 */
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, socket, &ev) < 0) {
-        debug_log_output("epoll_ctl(EPOLL_CTL_ADD)\\n");
+        debug_log_output("epoll_ctl(EPOLL_CTL_ADD) error=%s\n", strerror(errno));
         exit(1);
     }
     return 0;
@@ -167,7 +171,7 @@ int del_epoll( int socket )
     memset(&ev, 0, sizeof(ev));
     /* ソケットをepollに追加 */
     if (epoll_ctl(epfd, EPOLL_CTL_DEL, socket, &ev) < 0) {
-        debug_log_output("epoll_ctl(EPOLL_CTL_DEL)\\n");
+        debug_log_output("epoll_ctl(EPOLL_CTL_DEL) error=%s\n", strerror(errno));
         exit(1);
     }
     return 0;
