@@ -50,7 +50,7 @@ void	server_listen()
     int			sock_opt_val;
     struct epoll_event  events[MAX_EVENTS];             // EPOLL EVENTS
     int                 nfds;         			// EPOLL用 
-    struct timeval t_val;         			// 待ちタイマー値
+    //struct timeval t_val;         			// 待ちタイマー値
     int n;   
     ACCESS_INFO     ac_in;
     // =============================
@@ -119,6 +119,7 @@ void	server_listen()
             exit(EXIT_FAILURE);
         }
         //可能なファイルディスクリプタ一覧
+        int ff=0;
         for (n = 0; n < nfds; ++n) {
             if (events[n].data.fd == listen_socket) {
                 accept_socket = accept(listen_socket, (struct sockaddr *)&caddr, &caddr_len);
@@ -132,15 +133,20 @@ void	server_listen()
                 add_epoll(accept_socket, EPOLLIN );
             } else {
                 if( queue_check(events[n].data.fd) == 1 ){
-                    queue_do_copy();
+                     ff=1;
+                     //queue_do_copy();
                 }else{
                     // 2004/08/27 Add end
+                    debug_log_output("do server process %d", events[n].data.fd );
                     del_epoll(events[n].data.fd); 
                     ac_in.accept_socket = (unsigned int)events[n].data.fd;
                     ac_in.caddr = caddr;
                     server_listen_main(&ac_in);
                 }
             }
+        }
+        if( ff ){
+        queue_do_copy();
         }
     }
     close( listen_socket );
@@ -159,6 +165,8 @@ int add_epoll( int socket, int rwtrigger )
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, socket, &ev) < 0) {
         debug_log_output("epoll_ctl(EPOLL_CTL_ADD) error=%s\n", strerror(errno));
         exit(1);
+    }else{
+        debug_log_output("add_epoll %d", socket );
     }
     return 0;
 }
@@ -171,8 +179,10 @@ int del_epoll( int socket )
     memset(&ev, 0, sizeof(ev));
     /* ソケットをepollに追加 */
     if (epoll_ctl(epfd, EPOLL_CTL_DEL, socket, &ev) < 0) {
-        debug_log_output("epoll_ctl(EPOLL_CTL_DEL) error=%s\n", strerror(errno));
+        debug_log_output("epoll_ctl(EPOLL_CTL_DEL) socket=%d error=%s\n", socket, strerror(errno));
         exit(1);
+    }else{
+        debug_log_output("dell_epoll %d", socket );
     }
     return 0;
 }

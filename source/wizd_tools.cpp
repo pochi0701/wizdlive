@@ -970,32 +970,6 @@ tm_p->tm_hour       ,               // 時刻
 tm_p->tm_min                );      // 分
 return;
 }
-/********************************************************************************/
-// 100000000 → "100.00 MB" への変換を行う。
-//
-//      K,M,G に対応。
-/********************************************************************************/
-void conv_num_to_unit_string(unsigned char *sentence, u_int64_t file_size)
-{
-u_int64_t   real_size;
-u_int64_t   little_size;
-if ( file_size < 1024 ){
-    sprintf((char*)sentence, "%lu B", file_size );
-}else if ( file_size < (1024 * 1024) ){
-    real_size       = file_size / 1024;
-    little_size = (file_size * 100 / 1024) % 100;
-    sprintf((char*)sentence, "%lu.%02lu KB", real_size, little_size);
-}else if ( file_size < (1024 * 1024 * 1024) ){
-    real_size       = file_size / ( 1024*1024 );
-    little_size = (file_size * 100 / (1024*1024)) % 100;
-    sprintf((char*)sentence, "%lu.%02lu MB", real_size, little_size);
-}else{
-    real_size       = file_size / ( 1024*1024*1024 );
-    little_size = (file_size * 100 / (1024*1024*1024)) % 100;
-    sprintf((char*)sentence, "%lu.%02lu GB", real_size, little_size);
-}
-return;
-}
 //*******************************************************************
 // デバッグ出力初期化(ファイル名セット)関数
 // この関数を最初に呼ぶまでは、デバッグログは一切出力されない。
@@ -1026,7 +1000,6 @@ void debug_log_output(const char *fmt, ...)
     unsigned char       date_and_time[32];
     unsigned char       replace_date_and_time[48]={0};
     struct timeval tv;
-    //static __int64 last;
     va_list     arg;
     int         len;
     // =========================================
@@ -1057,7 +1030,6 @@ void debug_log_output(const char *fmt, ...)
 
 
     // 出力文字列生成開始。
-    //__int64 num;
     //QueryPerformanceCounter((LARGE_INTEGER*)&num);
     snprintf((char*)buf, sizeof(buf), "%s.%06d[%d] %s", date_and_time, (int)tv.tv_usec, getpid(), work_buf);
     //last = num;
@@ -1384,7 +1356,7 @@ void  jpeg_size(unsigned char *jpeg_filename, unsigned int *x, unsigned int *y)
     int		fd;
     unsigned char	buf[255];
     ssize_t		read_len;
-    off_t		length;
+    size_t		length;
     *x = 0;
     *y = 0;
     //debug_log_output("jpeg_size: '%s'.", jpeg_filename);
@@ -1638,9 +1610,9 @@ bool FileExists(unsigned char* str)
 //**************************************************************************
 // ファイルサイズを調べる
 //**************************************************************************
-off_t FileSizeByName(unsigned char* str)
+size_t FileSizeByName(unsigned char* str)
 {
-    off_t pos;
+    size_t pos;
     int handle;
     handle = open(str,O_BINARY);
     pos = lseek( handle,0,SEEK_END);

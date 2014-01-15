@@ -1,0 +1,156 @@
+@charset "UTF-8";
+
+
+
+
+/*フォント設定*/
+
+.fs10 { font-size: 10px ; }
+.fs12 { font-size: 12px ; }
+.fs14 { font-size: 14px ; }
+.fs16 { font-size: 16px ; }
+.fs18 { font-size: 18px ; }
+.fs20 { font-size: 20px ; }
+.fs22 { font-size: 22px ; }
+.fs24 { font-size: 24px ; }
+.fs26 { font-size: 26px ; }
+
+.fwb { font-weight: bold ; } /* 太字 */
+.fwn { font-weight: normal ; } /* 細字 */
+
+.ffm { font-family: monospace ; } /* 等幅 */
+
+.fsn { font-style: normal ; } /* 標準 */
+.fsi { font-style: italic ; } /* イタリック */
+.fso { font-style: oblique ; } /* 斜体 */
+
+
+/*フォント改行スペース*/
+
+.l100 { line-height: 1 ; } /* 100% */
+.l120 { line-height: 1.2 ; } /* 120% */
+.l140 { line-height: 1.4 ; } /* 140% */
+.l160 { line-height: 1.6 ; } /* 160% */
+.l180 { line-height: 1.8 ; } /* 180% */
+.l200 { line-height: 2 ; } /* 200% */
+.l250 { line-height: 2.5 ; } /* 250% */
+.l300 { line-height: 3 ; } /* 300% */
+
+
+/*テキスト位置*/
+
+.tl { text-align: left !important ; } /*左*/
+.tr { text-align: right !important ; } /*右*/
+.tc { text-align: center !important ; } /*中央*/
+
+
+/*上下寄せ*/
+
+.vt { vertical-align: top ; } /* 上寄せ */
+.vt img { vertical-align: top ; }
+.vm { vertical-align: middle ; } /* 中央寄せ */
+.vm img { vertical-align: middle ; }
+.vb { vertical-align: bottom ; } /* 下寄せ */
+.vb img { vertical-align: bottom ; }
+
+
+/*floatとクリア*/
+
+.fl { float: left ; } /*左回り込み*/
+.fr { float: right ; } /*右回り込み*/
+/*brなどの空要素を入れずにfloatの回り込みを解除する指定(親要素にfcbと指定)*/
+.fcb {
+	display: inline-block ;
+}
+.fcb:after {
+	content: "." ;
+	font-size: 0.1em ;
+	line-height: 0 ;
+	display: block ;
+	height: 0 ;
+	visibility: hidden ;
+	clear: both ;
+}
+/* \*/
+* html .fcb {
+    height: 1% ;
+}
+.fcb {
+    display: block ;
+}
+/* */
+
+
+/*横幅パーセンテージ*/
+
+.w5 { width: 5% ; }
+.w10 { width: 10% ; }
+.w15 { width: 15% ; }
+.w20 { width: 20% ; }
+.w25 { width: 25% ; }
+.w30 { width: 30% ; }
+.w33 { width: 33% ; }
+.w34 { width: 34% ; }
+.w35 { width: 35% ; }
+.w40 { width: 40% ; }
+.w45 { width: 45% ; }
+.w50 { width: 50% ; }
+.w55 { width: 55% ; }
+.w60 { width: 60% ; }
+.w65 { width: 65% ; }
+.w70 { width: 70% ; }
+.w75 { width: 75% ; }
+.w80 { width: 80% ; }
+.w85 { width: 85% ; }
+.w90 { width: 90% ; }
+.w95 { width: 95% ; }
+.w100 { width: 100% ; }
+
+
+/*各上下左右マージン指定*/
+
+.tp0 { margin-top: 0px !important ; }
+.tp5 { margin-top: 5px !important ; }
+.tp10 { margin-top: 10px !important ; }
+.tp15 { margin-top: 15px !important ; }
+.tp20 { margin-top: 20px !important ; }
+.tp25 { margin-top: 25px !important ; }
+.tp30 { margin-top: 30px !important ; }
+.tp35 { margin-top: 35px !important ; }
+.tp40 { margin-top: 40px !important ; }
+.tp45 { margin-top: 45px !important ; }
+.tp50 { margin-top: 50px !important ; }
+.bp0 { margin-bottom: 0px !important ; }
+.bp5 { margin-bottom: 5px !important ; }
+.bp10 { margin-bottom: 10px !important ; }
+.bp15 { margin-bottom: 15px !important ; }
+.bp20 { margin-bottom: 20px !important ; }
+.bp25 { margin-bottom: 25px !important ; }
+.bp30 { margin-bottom: 30px !important ; }
+.bp35 { margin-bottom: 35px !important ; }
+.bp40 { margin-bottom: 40px !important ; }
+.bp45 { margin-bottom: 45px !important ; }
+.bp50 { margin-bottom: 50px !important ; }
+.lp0 { margin-left: 0px !important ; }
+.lp5 { margin-left: 5px !important ; }
+.lp10 { margin-left: 10px !important ; }
+.lp15 { margin-left: 15px !important ; }
+.lp20 { margin-left: 20px !important ; }
+.lp25 { margin-left: 25px !important ; }
+.lp30 { margin-left: 30px !important ; }
+.lp35 { margin-left: 35px !important ; }
+.lp40 { margin-left: 40px !important ; }
+.lp45 { margin-left: 45px !important ; }
+.lp50 { margin-left: 50px !important ; }
+.rp0 { margin-right: 0px !important ; }
+.rp5 { margin-right: 5px !important ; }
+.rp10 { margin-right: 10px !important ; }
+.rp12 { margin-right: 12px !important ; }
+.rp15 { margin-right: 15px !important ; }
+.rp20 { margin-right: 20px !important ; }
+.rp25 { margin-right: 25px !important ; }
+.rp30 { margin-right: 30px !important ; }
+.rp35 { margin-right: 35px !important ; }
+.rp40 { margin-right: 40px !important ; }
+.rp45 { margin-right: 45px !important ; }
+.rp50 { margin-right: 50px !important ; }

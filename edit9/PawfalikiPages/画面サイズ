@@ -1,0 +1,17 @@
+
+・ディスプレイのサイズ
+↓横幅
+screen.width;
+↓高さ
+screen.height;
+
+注意点として，iPodを横にしても横幅:320，高さ:480と返ってくる
+
+・ブラウザの表示領域
+↓横幅
+window.innerWidth;
+↓高さ
+window.innerHeight;
+
+注意点として，スクロールバーを含みます
+iPodでは，URL入力欄は抜いたサイズでした。スクロールさせると消える。

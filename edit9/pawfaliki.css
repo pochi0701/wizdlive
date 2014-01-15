@@ -1,0 +1,171 @@
+/*
+ *
+  Example Style Sheet for Pawfaliki  
+ *
+ */
+
+/* page title - span.wiki_header */
+span.wiki_header
+{
+	font-size: medium;
+	font-weight: bold;   
+}
+
+/* error messages - p.error */
+p.error
+{
+	font-weight: bold;
+	text-align: center;
+	padding: 3px;
+	border-style: solid;
+	border-width: 1px;
+	color: red;
+}
+
+/* page container */
+table.wiki_body_container
+{	
+ 	border-style: none;
+ 	padding: 0px;
+ 	padding-left: 2px;
+ 	padding-right: 2px;
+}
+
+/* wiki syntax */
+table.wikisyntax
+{
+	border-style: solid;
+	border-width: 1px;
+	width: 100%;
+	border-color: #666666;
+}
+
+/* color for opional syntax values */
+span.optionalvalue
+{
+	color: #0000FF;
+}
+
+/* page contents */
+span.wiki_body
+{
+}
+
+/* general bits & bobs */
+body
+{
+	background-color: white;
+	color: blue; 
+	font-size: medium;  
+	margin-left: 6px;
+	margin-right: 18px;
+}
+
+/* horizontal rule */
+hr
+{  
+	border-style: none;
+	border-top-style: solid;
+	border-width: 1px;
+	border-color: #666666;
+}
+
+
+/* link */
+a{
+	background: white;
+	color: darkblue;
+        text-decoration: none;  
+}
+/* active link */
+a:active{
+	color: gray;
+}
+
+/* link mouse-over */
+a:hover
+{
+ color:blueviolet;
+ background-color:thistle;
+ text-decoration:underline overline;
+ position:relative;
+ top:1px;
+ left:1px;
+}
+
+
+
+/* input */
+input
+{	
+	font-size: small; 
+	color: white;
+        padding: 0px;
+	cursor: pointer;
+        border-radius: 5px;         /* CSS3 */
+        -moz-border-radius: 5px;    /* Firefox */
+        -webkit-border-radius: 5px; /* Safari,Chrome */
+        border: 3px royalblue solid;     /* 枠線の装飾 */
+        background-color: steelblue;   /* 背景色 */
+}
+
+/* mouse-over input */
+input:hover
+{
+	color: darkblue;
+   border: 3px ghostwhite solid;     /* 枠線の装飾 */
+   background-color: lavender;   /* 背景色 */
+ 
+}
+
+/* active input */
+input:active
+{	
+	color: green;
+}
+
+/* password entry */
+input.pass
+{
+	border-width: 0.5px;
+	border-style: solid;
+	border-color: blue;
+	color: lime;
+}  
+
+/* mouse-over password entry */
+input.pass:hover
+{
+	color: lime;
+	background: white;
+}
+
+/* file upload entry */
+input.fileupload
+{
+	font-size: small;
+	color: lime;
+	padding: 0px;
+	background: white;
+}
+
+/* main text area */
+textarea
+{
+   border-radius: 10px;         /* CSS3 */
+   -moz-border-radius: 10px;    /* Firefox */
+   -webkit-border-radius: 10px; /* Safari,Chrome */
+
+   border: 3px darkblue solid;     /* 枠線の装飾 */
+   background-color: white;   /* 背景色 */
+ 
+	font-size: small; 
+	color: black;
+	/*background: white;*/
+	padding: 4px;
+	/*border-style: none;*/ 
+	/*height: 320px;
+	width: 99%;*/
+        width: 99%;
+        height: 20em;
+}

@@ -41,7 +41,6 @@ extern void 	make_datetime_string(unsigned char *sentence);
 extern void 	conv_time_to_string(unsigned char *sentence, time_t conv_time);
 extern void 	conv_time_to_date_string(unsigned char *sentence, time_t conv_time);
 extern void 	conv_time_to_time_string(unsigned char *sentence, time_t conv_time);
-extern void 	conv_num_to_unit_string(unsigned char *sentence, u_int64_t file_size);
 extern void 	cat_before_n_length(unsigned char *sentence,  unsigned int n);
 extern void 	cat_after_n_length(unsigned char *sentence,  unsigned int n);
 extern void 	cut_character_at_linetail(char *sentence, char cut_char);
@@ -74,7 +73,7 @@ extern void png_size(unsigned char *png_filename, 	unsigned int *x, unsigned int
 
 //システム処理
 extern bool   FileExists(unsigned char* str);
-extern off_t  FileSizeByName(unsigned char* str);
+extern size_t  FileSizeByName(unsigned char* str);
 extern void   Sleep(unsigned int milliseconds);
 extern SOCKET sock_connect(char *host, int port);
 extern void   sock_close(SOCKET sock);

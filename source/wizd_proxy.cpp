@@ -89,34 +89,34 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     debug_log_output("proxy:port: %d", port);
     p = send_http_header_buf;
     if( http_recv_info_p->isGet == 1 ){
-        p += sprintf(p, "GET /%s HTTP/1.0\r\n", p_url);
+        p += sprintf((char*)p, "GET /%s HTTP/1.0\r\n", p_url);
     }else if ( http_recv_info_p->isGet == 2 ){
-        p += sprintf(p, "HEAD /%s HTTP/1.0\r\n", p_url);
+        p += sprintf((char*)p, "HEAD /%s HTTP/1.0\r\n", p_url);
     }
-    p += sprintf(p, "Host: %s:%u\r\n", p_target_host_name, port);
+    p += sprintf((char*)p, "Host: %s:%u\r\n", p_target_host_name, port);
     if (global_param.user_agent_proxy_override[0]) {
-        p += sprintf(p, "User-agent: %s\r\n", global_param.user_agent_proxy_override);
+        p += sprintf((char*)p, "User-agent: %s\r\n", global_param.user_agent_proxy_override);
     } else {
         if (http_recv_info_p->user_agent[0]) {
-            p += sprintf(p, "User-agent: %s\r\n", http_recv_info_p->user_agent);
+            p += sprintf((char*)p, "User-agent: %s\r\n", http_recv_info_p->user_agent);
         } else {
-            p += sprintf(p, "User-agent: %s\r\n", SERVER_NAME);
+            p += sprintf((char*)p, "User-agent: %s\r\n", SERVER_NAME);
         }
     }
-    p += sprintf(p, "Accept: */*\r\n");
-    p += sprintf(p, "Connection: close\r\n");
+    p += sprintf((char*)p, "Accept: */*\r\n");
+    p += sprintf((char*)p, "Connection: close\r\n");
     if (http_recv_info_p->range_start_pos) {
-        p += sprintf(p, "Range: bytes=");
-        p += sprintf(p, "%lu-", http_recv_info_p->range_start_pos);
+        p += sprintf((char*)p, "Range: bytes=");
+        p += sprintf((char*)p, "%zu-", http_recv_info_p->range_start_pos);
         if (http_recv_info_p->range_end_pos) {
-            p += sprintf(p, "%lu", http_recv_info_p->range_end_pos);
+            p += sprintf((char*)p, "%zu", http_recv_info_p->range_end_pos);
         }
-        p += sprintf(p, "\r\n");
+        p += sprintf((char*)p, "\r\n");
     }
     if (p_auth != NULL) {
-        p += sprintf(p, "Authorization: Basic %s\r\n", base64(p_auth));
+        p += sprintf((char*)p, "Authorization: Basic %s\r\n", base64(p_auth));
     }
-    p += sprintf(p, "\r\n");
+    p += sprintf((char*)p, "\r\n");
     debug_log_output("flag_pc: %d", flag_pc);
     sock = sock_connect((char*)p_target_host_name, port);
     if (sock < 0) {
@@ -150,7 +150,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             content_length = strtoull((char*)(line_buf[line] + strlen(HTTP_RECV_CONTENT_LENGTH)), NULL, 0);
         }else if (!strncasecmp(line_buf[line], HTTP_RECV_LOCATION, strlen(HTTP_RECV_LOCATION))) {
             strcpy(work_buf, line_buf[line]);
-            sprintf(line_buf[line], "Location: /-.-%s", work_buf + strlen(HTTP_RECV_LOCATION));
+            sprintf((char*)line_buf[line], "Location: /-.-%s", work_buf + strlen(HTTP_RECV_LOCATION));
         }else if ( strstr( line_buf[line],"charset") ){
             if ( strstr( line_buf[line], "EUC-JP" )){
                 replace_character( line_buf[line], strlen(line_buf[line]),"EUC-JP", "UTF-8");
@@ -246,18 +246,18 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                     }
                 }
                 if (flag_pc && mlt != NULL && mlt->stream_type == TYPE_STREAM) {
-                    q += sprintf(q, "/-.-playlist.pls?http://%s", http_recv_info_p->recv_host);
+                    q += sprintf((char*)q, "/-.-playlist.pls?http://%s", http_recv_info_p->recv_host);
                 }
                 if (*p == '/') {
-                    q += sprintf(q, "%s%s", proxy_pre_string, p);
+                    q += sprintf((char*)q, "%s%s", proxy_pre_string, p);
                 } else if (!strncmp(p, "http://", 7)) {
-                    q += sprintf(q, "/-.-%s", p);
+                    q += sprintf((char*)q, "/-.-%s", p);
                 } else {
-                    q += sprintf(q, "%s%s", base_url, p);
-                    //q += sprintf(q, "%s", p);
+                    q += sprintf((char*)q, "%s%s", base_url, p);
+                    //q += sprintf((char*)q, "%s", p);
                 }
                 if (mlt != NULL && mlt->stream_type == TYPE_STREAM) {
-                    q += sprintf(q, " vod=\"0\"");
+                    q += sprintf((char*)q, " vod=\"0\"");
                 }
                 *q++ = '>';
                 p = r + 1;
@@ -283,12 +283,12 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                 p += l; /* i.e., p = new_p + strlen(link_pattern); */
                 if (*p == '"') *q++ = *p++;
                 if (*p == '/') {
-                    q += sprintf(q, "%s", proxy_pre_string);
+                    q += sprintf((char*)q, "%s", proxy_pre_string);
                 } else if (!strncmp(p, "http://", 7)) {
-                    q += sprintf(q, "/-.-");
+                    q += sprintf((char*)q, "/-.-");
                 } else {
-                    q += sprintf(q, "%s", base_url);
-                    //q += sprintf(q, "%s", p);
+                    q += sprintf((char*)q, "%s", base_url);
+                    //q += sprintf((char*)q, "%s", p);
                 }
             }
             while (*p) *q++ = *p++;
@@ -311,7 +311,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         }
         if( http_recv_info_p->isGet == 1 ){
             return ( copy_descriptors(sock, accept_socket,
-                            (off_t)content_length,
+                            (size_t)content_length,
                             NULL ,
                             //(char*)http_recv_info_p->recv_uri,
                             http_recv_info_p->range_start_pos));

@@ -1,0 +1,37 @@
+テーブルの変更<ALTER TABLE>
+
+テーブルの変更は ALTER TABLE 文で行います。既存のテーブルの定義を変更します。ALTER TABLE は次の機能を備えています。
+
+    * テーブルに列を追加する
+    * テーブルから列を削除する
+    * テーブルにテーブル制約を追加する
+    * テーブルからテーブル制約を削除する
+    * 列にデフォルト値を追加する
+    * 列からデフォルト値を削除する
+
+テーブル制約 (CONSTRAINT) とは、テーブルの列に入力できる値を制限するテーブル定義の一部のことです。具体的にどのように制約するのかについては後述します。また、デフォルト値とは、テーブルへの INSERT INTO 文に列の値が指定されなかった場合に、そのテーブルの列に自動的に挿入される値のことです。
+
+ALTER TABLE 文の構文は次の通りです。
+
+  ・列の追加
+    ALTER TABLE テーブル名 ADD [COLUMN] 列名 データ型 ;
+
+  ・列を削除
+    ALTER TABLE テーブル名 DROP [COLUMN] 列名
+          [ RESTRICT | CASCADE ] ;
+
+  ・テーブル制約の追加
+    ALTER TABLE テーブル名 ADD テーブル制約の定義 ;
+
+  ・テーブル制約の削除
+    ALTER TABLE テーブル名 DROP CONSTRAINT テーブル制約の定義
+          [ RESTRICT | CASCADE ] ;
+
+  ・デフォルト値の追加
+    ALTER TABLE テーブル名
+          ALTER [COLUMN] 列名 SET DEFAULT デフォルト値 ;
+
+  ・デフォルト値の削除
+    ALTER TABLE テーブル名 ALTER [COLUMN] 列名 DROP DEFAULT ;
+
+[[SQL解説]]

@@ -1,0 +1,86 @@
+<html><head>
+<script language="JavaScript"><!--
+function saveData(url,datum,flag)
+{
+    var elm = document.getElementById("ctl");
+    var dat;
+    var list;
+    var change = false;
+    var pivot=0;
+    if( elm.value.length ){
+       list = JSON.parse(elm.value);
+       pivot = list.length;
+    }else{
+       list = [];
+    }
+    for( var i in list ){
+        if( list[i].url == url ){
+            pivot = i;
+            break;
+        }
+    }
+    //データ登録
+    if( url.length>0 ){
+        dat = document.getElementById("d"+pivot);
+        if( dat == null ){
+            var div_element = document.createElement("div");
+            div_element.innerHTML = '<textarea id="d'+pivot+'" class="hidden-code"></textarea>';
+            var parent_object = document.getElementById("strage");
+            parent_object.appendChild(div_element);
+        }
+        dat = document.getElementById("d"+pivot);
+        if( flag ){
+            change = list[pivot].change || ( dat.value != datum );
+        }
+        dat.value = datum;
+        list[pivot] = {"url":url,"change":change};
+        elm.value = JSON.stringify(list);
+    }
+}
+function removeData(url)
+{
+    var elm = document.getElementById("ctl");
+    var dat;
+    var list = JSON.parse(elm.value);
+    var cnt = list.length;
+    for( var i in list ){
+        if( list[i].url == url ){
+            list.splice(i,1);
+            elm.value = JSON.stringify(list);
+            //移動
+            for( var j = i; j < cnt-1 ; j++ ){
+                //こうしないと数値にならない
+                var k = 1+parseInt(j,10);
+                var txt1 = document.getElementById('d'+j);
+                var txt2 = document.getElementById('d'+k);
+                txt1.value = txt2.value;
+            }
+            var txt1 = document.getElementById('d'+(cnt-1));
+            txt1.value = "";        
+            return;
+        }
+    }
+}
+function fileList() {
+    
+    var elm = document.getElementById("ctl");
+    if( elm.value.length ){
+        return JSON.parse(elm.value);
+    }else{
+        return [];
+    }
+}
+
+function fileData(idx) {
+    var dat = document.getElementById("d"+idx);
+    var data = dat.value;
+    return data;
+}
+// --></script>
+<style type="text/css">
+.hidden-code {display:all;}
+</style>
+</head><body>
+<textarea id="ctl" class="hidden-code"></textarea>
+<div id="strage"></div>
+</body></html>

@@ -1,0 +1,34 @@
+/* progress bar container */
+#progressbar {
+        border: 1px #36c solid;
+        width: 300px;
+        height: 20px;
+        position: relative;
+        color: #36c;
+}
+/* color bar */
+#progressbar div.progress {
+        position: absolute;
+        width: 0;
+        height: 100%;
+        overflow: hidden;
+        background-color: #d5ddf3;
+}
+/* text on bar */
+#progressbar div.progress .text {
+        position: absolute;
+        text-align: center;
+        color: #36c;
+}
+/* text off bar */
+#progressbar div.text {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+}
+
+#status {
+        text-align: right;
+        width: 300px;
+}

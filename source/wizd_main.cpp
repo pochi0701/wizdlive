@@ -10,18 +10,19 @@
 //	すべて自己責任でおながいしまつ。
 //  このソフトについてVertexLinkに問い合わせないでください。
 // ==========================================================================
-#include  <stdio.h>
-#include  <string.h>
-#include  <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include  <signal.h>
+#include <signal.h>
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
-#include  <sys/wait.h>
+#include <sys/wait.h>
 #include <errno.h>
 #include <cerrno>
 #include "wizd.h"
+#include "wizd_String.h"
 static void print_help(void);
 static void daemon_init(void);
 static void set_user_id(unsigned char *user, unsigned char *group);
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
     // 各種初期化
     // =============================================
     global_param_init();
+    wString::wStringInit();
     // =============================================
     // オプションチェック
     // =============================================
@@ -102,7 +104,7 @@ int main(int argc, char *argv[])
         daemon_init();
     }else{
         signal(SIGPIPE, SIG_IGN);
-   signal(SIGCHLD, SIG_IGN);
+        signal(SIGCHLD, SIG_IGN);
     }
 #endif
     // ==========================================

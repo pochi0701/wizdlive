@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8"/>
+<title>TestCanvas001.html</title>
+<script>//<![CDATA[
+
+//このファイルは utf-8、XML、HTML5
+// CDATA は常に必要ではないけど、おまじないと思ってつけておく
+
+/* 2009/08/05, 2010/03/03
+・Canvasサンプル
+  fillText は
+  Firefox  3.5以上。 3.0は不可
+  Opera   10.5以上。10.1は不可
+*/
+
+function draw() {
+	var canvas = document.getElementById("canvas1");
+	var c = canvas.getContext("2d");
+	c.fillStyle = "#0099ff";
+	c.fillRect (15, 15, 50, 45);
+	c.fillStyle = "rgba(0, 0, 200, 0.5)";
+	c.fillRect (30, 30, 50, 45);
+	c.font = "38px 'MS Gothic'";
+	c.fillStyle = "#666666";
+	c.fillText("こんにちは", 85, 60);
+}
+//]]></script>
+</head>
+<body onload="draw()">
+<canvas id="canvas1" width="300" height="300"></canvas>
+</body>
+</html>

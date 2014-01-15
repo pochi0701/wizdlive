@@ -26,31 +26,73 @@
 #include <error.h>
 #include <cerrno>
 #include <sys/epoll.h>
+#include <time.h>
 #include "wizd.h"
+#include "wizd_String.h"
 
-static int http_file_send(int accept_socket, unsigned char *filename, off_t content_length, off_t range_start_pos );
+static int http_file_send(int accept_socket, unsigned char *filename, size_t content_length, size_t range_start_pos );
 // 2004/08/13 Update end
 static int next_file(int *in_fd_p, JOINT_FILE_INFO_T *joint_file_info_p);
 
 
-int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off_t content_length)
+int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,size_t content_length)
 {
         int     send_header_data_len;
         int     result_len;
+#if 1 
+        //wString::wStringInit();
+        wString send_http_header_buf;
+	send_http_header_buf.headerInit(content_length, 1, (char*)http_recv_info_p->mime_type);
+        send_http_header_buf.header( "Accept-Ranges: bytes");
+        send_header_data_len = send_http_header_buf.length()+2; 
+        debug_log_output("send_header_data_len = %d\n", send_header_data_len);
+        debug_log_output("--------\n");
+        debug_log_output("%s", send_http_header_buf.headerPrintMem().c_str());
+        debug_log_output("--------\n");
 
-        unsigned char   send_http_header_buf[2048];
+        // --------------
+        // ヘッダ返信
+        // --------------
+        result_len = send(accept_socket, send_http_header_buf.headerPrintMem().c_str(), send_header_data_len, 0);
+        debug_log_output("result_len=%d, send_data_len=%d\n", result_len, send_header_data_len);
+        //wString::wStringEnd();
+#else
+        char    work[128];
+        unsigned char   send_http_header_buf[2048]={0};
         int             ptr=0;
 
 
         // ---------------
         // 作業用変数初期化
         // ---------------
-        memset(send_http_header_buf, '\0', sizeof(send_http_header_buf));
+        //memset(send_http_header_buf, '\0', sizeof(send_http_header_buf));
 
         // --------------
         // OK ヘッダ生成
         // --------------
-        ptr = snprintf( (char*)send_http_header_buf, sizeof(send_http_header_buf), "%s%s"HTTP_SERVER_NAME ,HTTP_OK, HTTP_CONNECTION, SERVER_NAME);
+        ptr = snprintf( (char*)send_http_header_buf, sizeof(send_http_header_buf), 
+                         "%s%s%s"HTTP_SERVER_NAME,HTTP_OK, HTTP_CONNECTION, HTTP_ACCEPTRANGE, SERVER_NAME);
+        //Date
+        time_t timer;
+        time(&timer);
+        struct tm *utc;
+        utc = gmtime(&timer);
+        char you[7][4]={"Sun", "Mon","Tue", "Wed", "Thu", "Fri", "Sat"};
+        char mon[12][4]={"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        sprintf( work, "%s, %d %s %d %02d:%02d:%02d",you[utc->tm_wday],utc->tm_mday,mon[utc->tm_mon],utc->tm_year+1900, utc->tm_hour, utc->tm_min, utc->tm_sec); 
+        ptr += snprintf( (char*)send_http_header_buf+ptr, sizeof(send_http_header_buf) - ptr, "Date: %s GMT\r\n", work);
+
+        //Last-Modified
+        //struct  stat file_stat;
+        //int result;
+        //result = stat((char*)http_recv_info_p->send_filename, &file_stat);
+        //utc = gmtime(&file_stat.st_mtime);
+        timer += 60*60;
+        utc = gmtime(&timer);
+        sprintf( work, "%s, %d %s %d %02d:%02d:%02d",you[utc->tm_wday],utc->tm_mday,mon[utc->tm_mon],utc->tm_year+1900, utc->tm_hour, utc->tm_min, utc->tm_sec);
+        ptr += snprintf( (char*)send_http_header_buf+ptr, sizeof(send_http_header_buf) - ptr, "Expires: %s GMT\r\n", work);
+
+
         if( content_length ){
             ptr += snprintf( (char*)send_http_header_buf+ptr, sizeof(send_http_header_buf) - ptr, HTTP_CONTENT_LENGTH, content_length );
         }
@@ -68,6 +110,7 @@ int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off
         // --------------
         result_len = send(accept_socket, send_http_header_buf, send_header_data_len, 0);
         debug_log_output("result_len=%d, send_data_len=%d\n", result_len, send_header_data_len);
+#endif
         return 0;
 }
 
@@ -77,13 +120,10 @@ int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off
 // **************************************************************************
 int http_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 {
-	off_t	content_length;
+        size_t	content_length;
 	
-	struct	stat	file_stat;
-	int				result;
-
-
-
+	struct	stat file_stat;
+	int	result;
 	// -------------------------------
 	// ファイルサイズチェック
 	// -------------------------------
@@ -93,17 +133,14 @@ int http_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 	}
 	else // end位置指定無し。
 	{
-		result = stat((char*)http_recv_info_p->send_filename, &file_stat); // ファイルサイズチェック。
+                result = stat((char*)http_recv_info_p->send_filename, &file_stat); // ファイルサイズチェック。
 		if ( result != 0 )
 		{
 			debug_log_output("file not found.");
 			return ( -1 );
 		}
-
 		content_length = file_stat.st_size - http_recv_info_p->range_start_pos;
 	}
-
-
 
 	// --------------
 	// OK ヘッダ生成
@@ -122,10 +159,10 @@ int http_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 // **************************************************************************
 // ファイルの実体の送信実行部
 // **************************************************************************
-static int http_file_send(int accept_socket, unsigned char *filename, off_t content_length, off_t range_start_pos )
+static int http_file_send(int accept_socket, unsigned char *filename, size_t content_length, size_t range_start_pos )
 {
 	int		in_fd;
-	off_t			seek_ret;
+	size_t		seek_ret;
         JOINT_FILE_INFO_T *joint_file_info_p=NULL;
 
 	// ---------------------
@@ -180,7 +217,7 @@ void   queue_init(void)
 
 /////////////////////////////////////////////////////////////////////////////
 //CUE追加
-int  enqueue_memory(int out_fd, off_t content_length, unsigned char* buffer)
+int  enqueue_memory(int out_fd, size_t content_length, unsigned char* buffer)
 {
     COPY_QUEUE* queue;
     int queue_end=-1;
@@ -242,7 +279,7 @@ int  enqueue_memory(int out_fd, off_t content_length, unsigned char* buffer)
 }
 /////////////////////////////////////////////////////////////////////////////
 //CUE追加
-int  enqueue(int in_fd, int out_fd, off_t content_length)
+int  enqueue(int in_fd, int out_fd, size_t content_length,int flag)
 {
     COPY_QUEUE* queue;
     int queue_end=-1;
@@ -295,8 +332,8 @@ int  enqueue(int in_fd, int out_fd, off_t content_length)
         debug_log_output("malloc() error.\n");
         return (-1);
     }
+    //ここにheaderをコピしてから送出する
     queue->in_fd          = in_fd;
-    queue->in_enabled     = true;
     queue->out_fd         = out_fd;
     queue->out_enabled    = false;
     queue->content_length = content_length;
@@ -306,7 +343,16 @@ int  enqueue(int in_fd, int out_fd, off_t content_length)
     queue->current_write_size     = 0;
     queue->done           = 0;
     queue_num += 1;
-    //add_epoll(in_fd, EPOLLIN );
+    //入力がSOCKETの場合
+    if( flag ){
+        add_epoll(in_fd, EPOLLIN );
+        queue->in_enabled = false;
+        queue->in_enqueue = true;
+    //入力がFILEの場合
+    }else{
+        queue->in_enabled = true;
+        queue->in_enqueue = false; 
+    }
     add_epoll(out_fd, EPOLLOUT );
     return 0;
 }
@@ -352,12 +398,15 @@ int  queue_check(int socket)
          //要素を順に実行。
          while( ptr >= 0 ){
             //エラーまたは正常終了
-            //if( queue_copy[ptr].in_fd == socket ){
-            //    queue_copy[ptr].in_enabled = true;
-            //    break;
-            //}
+            if( queue_copy[ptr].in_fd == socket ){
+                queue_copy[ptr].in_enabled = true;
+                del_epoll(socket);
+                flag = 1;
+                break;
+            }
             if( queue_copy[ptr].out_fd == socket ){
                 queue_copy[ptr].out_enabled = true;
+                del_epoll(socket);
                 flag = 1;
                 break;
             }
@@ -396,66 +445,23 @@ int  queue_do_copy(void)
 // データコピー登録
 int copy_descriptors(int in_fd,
                      int out_fd,
-                     off_t content_length,
+                     size_t content_length,
                      JOINT_FILE_INFO_T *joint_file_info_p,
-                     off_t range_start_pos)
+                     size_t range_start_pos,
+                     int flag)
 {
 #ifdef linux
         //ノンブロッキングモードに設定
         set_blocking_mode(in_fd, 1); /* non_blocking */
         set_blocking_mode(out_fd,1); /* non_blocking */
 #endif
-        enqueue(in_fd,out_fd,content_length);
+        enqueue(in_fd,out_fd,content_length,flag);
         //queue_do_copy();
         return 0;
 }
-#if 0
-// **************************************************************************
-// データコピーループ
-// **************************************************************************
-int copy_descriptors(int in_fd,
-                     int out_fd,
-                     off_t content_length,
-                     JOINT_FILE_INFO_T *joint_file_info_p,
-                     off_t range_start_pos)
-{
-
-        unsigned char   *send_buf_p;
-        // ======================
-        // 送信バッファを確保
-        // ======================
-
-        send_buf_p = (unsigned char*)malloc(SEND_BUFFER_SIZE);
-        if ( send_buf_p == NULL )
-        {
-                debug_log_output("malloc() error.\n");
-                return (-1 );
-        }
-#ifdef linux
-        set_blocking_mode(in_fd, 0); /* non_blocking */
-        set_blocking_mode(out_fd,0); /* non_blocking */
-#endif
-        // 一応バッファクリア
-        memset(send_buf_p, 0, SEND_BUFFER_SIZE);
-        COPY_QUEUE* queue = &queue_copy[0];
-        queue->in_fd          = in_fd;
-        queue->in_enabled     = true;
-        queue->out_fd         = out_fd;
-        queue->out_enabled    = true;
-        queue->content_length = content_length;
-        queue->send_buf_p     = send_buf_p;
-        queue->total_read_size      = 0;
-        queue->total_write_size     = 0;
-        queue->current_read_size    = 0;
-        queue->current_write_size     = 0;
-        queue->done           = 0;
-        copy_body( queue );
-        return 0;
-}
-#endif
 // -1:ERROR  0:END 1:EAGAIN
 int copy_body(COPY_QUEUE *qc)
-//int in_fd, int out_fd, int total_read_size,int total_write_size,int current_write_size, off_t content_length, unsigned char* send_buf_p )
+//int in_fd, int out_fd, int total_read_size,int total_write_size,int current_write_size, size_t content_length, unsigned char* send_buf_p )
 {
         int                    read_length=0;
         int                    write_length=0;
@@ -465,6 +471,7 @@ int copy_body(COPY_QUEUE *qc)
         // ================
         while ( qc->in_enabled || qc->out_enabled )
         {
+            //debug_log_output("read %d write %d", qc->current_read_size, qc->current_write_size );
             if( qc->in_enabled ){
                 if( qc->current_read_size == qc->current_write_size ){
                     // 目標readサイズ計算 content_length==0も考慮
@@ -488,8 +495,13 @@ int copy_body(COPY_QUEUE *qc)
                         //        debug_log_output("EOF detect.\n");
                         //        break;
                         //}
+                        debug_log_output("rw end %d %d %d", qc->in_fd, qc->in_enqueue, qc->out_fd );
+                        if(qc->in_enqueue){
+                        }
                         close(qc->in_fd);
-                        del_epoll( qc->out_fd);
+                        if( shutdown(qc->out_fd,SHUT_WR) < 0 ){
+                            debug_log_output("Shutdown Error");
+                        }
                         close(qc->out_fd);
                         free(qc->send_buf_p);
                         qc->send_buf_p = 0;
@@ -498,26 +510,36 @@ int copy_body(COPY_QUEUE *qc)
                     }else if ( read_length < 0 ){
                         if( errno == EAGAIN ){
                             qc->in_enabled = false;
+                            add_epoll(qc->in_fd, EPOLLIN);
                             debug_log_output("READ EAGAIN");
                             return 1;
                         }
+                        if(qc->in_enqueue){
+                        }
                         close(qc->in_fd);
-                        del_epoll( qc->out_fd);
+                        if( shutdown(qc->out_fd,SHUT_WR) < 0 ){
+                            debug_log_output("Shutdown Error");
+                        }
                         close(qc->out_fd);
                         free(qc->send_buf_p);
                         qc->send_buf_p = 0;
-                        debug_log_output("read error");
+                        debug_log_output("read error error=%s\n", strerror(errno));
                         return ( -1 );
                     //読み込み正常終了
                     }else{
+                        debug_log_output("Normal read %d", read_length );
                         qc->total_read_size += read_length;
                         qc->current_read_size = read_length;
                         qc->current_write_size = 0;
                     }
                 }else if ( qc->total_read_size < qc->total_write_size ){
                     debug_log_output( "read write error");
+                    if(qc->in_enqueue){
+                    }
                     close(qc->in_fd);
-                    del_epoll( qc->out_fd);
+                    if( shutdown(qc->out_fd,SHUT_WR) < 0 ){
+                        debug_log_output("Shutdown Error");
+                    }
                     close(qc->out_fd);
                     free(qc->send_buf_p);
                     qc->send_buf_p = 0;
@@ -531,14 +553,19 @@ int copy_body(COPY_QUEUE *qc)
                 {
                     if( errno == EAGAIN ){
                         qc->out_enabled = false;
+                        add_epoll(qc->out_fd, EPOLLOUT);
                         debug_log_output("WRITE EAGAIN");
                         return 1;
                     }
                     debug_log_output("send() error.%d %s\n", errno,strerror(errno));
         	    free(qc->send_buf_p);       // Memory Free.
                     qc->send_buf_p=0;
+                    if(qc->in_enqueue){
+                    }
                     close(qc->in_fd);   // File Close
-                    del_epoll( qc->out_fd);
+                    if( shutdown(qc->out_fd,SHUT_WR) < 0 ){
+                        debug_log_output("Shutdown Error");
+                    }
                     close(qc->out_fd);
                     return ( -1 );
                 }
@@ -547,10 +574,10 @@ int copy_body(COPY_QUEUE *qc)
                 qc->current_write_size += write_length;
                 if ( qc->content_length != 0 )
                 {
-                    debug_log_output("Streaming..  %lld / %lld ( %lld.%lld%% )\n", 
+                    debug_log_output("Streaming..  %ld / %ld ( %ld.%ld%% )\n", 
                                                    qc->total_write_size, qc->content_length,
-                                                   qc->total_read_size * 100 / qc->content_length,
-                                                   (qc->total_read_size * 1000 / qc->content_length ) % 10 );
+                                                   qc->total_write_size * 100 / qc->content_length,
+                                                   (qc->total_write_size * 1000 / qc->content_length ) % 10 );
                     //if ( qc->total_write_size >= qc->content_length)
                     //{
                     //    debug_log_output("send() end.(content_length=%d)\n", qc->content_length );

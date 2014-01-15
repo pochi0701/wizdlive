@@ -25,7 +25,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include "wizd.h"
-static int http_vob_file_send(int	accept_socket, JOINT_FILE_INFO_T *joint_file_info_p, off_t content_length, off_t range_start_pos );
+static int http_vob_file_send(int	accept_socket, JOINT_FILE_INFO_T *joint_file_info_p, size_t content_length, size_t range_start_pos );
 // **************************************************************************
 // JOINTファイルを、連結して返信する。
 // **************************************************************************
@@ -35,7 +35,7 @@ int http_vob_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p  
     int	result_len;
     unsigned char	send_http_header_buf[2048];
     unsigned char	work_buf[1024];
-    off_t		joint_content_length = 0;
+    size_t		joint_content_length = 0;
     JOINT_FILE_INFO_T *joint_file_info_p;
     int	ret;
     unsigned int	i;
@@ -111,12 +111,12 @@ int http_vob_file_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p  
 // **************************************************************************
 // ファイルの実体を送信する。
 // **************************************************************************
-static int http_vob_file_send(int	accept_socket, JOINT_FILE_INFO_T *joint_file_info_p, off_t content_length, off_t range_start_pos )
+static int http_vob_file_send(int	accept_socket, JOINT_FILE_INFO_T *joint_file_info_p, size_t content_length, size_t range_start_pos )
 {
     int fd;
-    off_t			lseek_ret;
-    off_t			start_file_pos;
-    off_t			left_pos;
+    size_t			lseek_ret;
+    size_t			start_file_pos;
+    size_t			left_pos;
     debug_log_output("---------------------------------------------------");
     debug_log_output("http_vob_file_send() start" );
     debug_log_output("range_start_pos=%d", range_start_pos);
@@ -198,7 +198,7 @@ int analyze_vob_file(unsigned char *vob_filename, JOINT_FILE_INFO_T *joint_file_
     // ----------------------------------------------------
     // vobから読んだファイルの、ファイル情報をGet
     // ----------------------------------------------------
-    ret = stat(first_filename, &file_stat);
+    ret = stat((char*)first_filename, &file_stat);
     if ( ret != 0 )
     {
         debug_log_output("'%s' Not found.", first_filename);
@@ -222,7 +222,7 @@ int analyze_vob_file(unsigned char *vob_filename, JOINT_FILE_INFO_T *joint_file_
         // /VTS_01_1.VOB → VTS_01_2.VOB
         series_filename[strlen(series_filename)-5]++;
         // ファイル情報をGET
-        ret = stat(series_filename, &file_stat);
+        ret = stat((char*)series_filename, &file_stat);
         if ( ret != 0 ) // ファイル無し。検索終了。
         {
             debug_log_output("'%s' Not found.", series_filename);

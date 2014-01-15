@@ -19,8 +19,8 @@ typedef unsigned long DWORD;
 #define    strncmp(dst,src,n)       strncmp((char*)(dst),(char*)(src),(n))
 #define    atoi(nptr)               atoi((char*)(nptr))
 #define    strstr(haystack,needle)  strstr((char*)(haystack),(char*)(needle))
-#define    stat(path,buf)           stat((char*)path,(buf))
-#define    sprintf(str,...)         sprintf((char*)(str), __VA_ARGS__)
+//#define    stat(path,buf)           stat((char*)path,(buf))
+//#define    sprintf(str,...)         sprintf((char*)(str), __VA_ARGS__)
 #define    snprintf(str,size,...)   snprintf((char*)(str),(size_t)(size),__VA_ARGS__)
 extern     int open(unsigned char *pathname,int flags,mode_t  mode);
 extern     int open(unsigned char *pathname,int flags);

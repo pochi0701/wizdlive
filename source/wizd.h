@@ -128,12 +128,14 @@
 #define	HTTP_OK 		"HTTP/1.0 200 OK\r\n"
 #define	HTTP_NOT_FOUND 		"HTTP/1.0 404 File Not Found\r\n"
 #define HTTP_NOT_FOUND1         "HTTP/1.x 404 Not Found"
-#define HTTP_CONTENT_LENGTH	"Content-Length: %lu\r\n"
+#define HTTP_CONTENT_LENGTH	"Content-Length: %zu\r\n"
 #define	HTTP_ACCEPT_RANGES	"Accept-Ranges: bytes\r\n"
 #define HTTP_CONTENT_TYPE 	"Content-Type: %s\r\n"
 #define	HTTP_SERVER_NAME	"Server: %s\r\n"
 #define	HTTP_CONNECTION		"Connection: Close\r\n"
-#define HTTP_END			"\r\n"
+#define HTTP_ACCEPTRANGE	"Accept-Ranges: bytes\r\n"
+#define HTTP_DATE		"Date: %s\r\n"
+#define HTTP_END		"\r\n"
 
 
 // アクセスコントロール 登録可能数
@@ -198,8 +200,8 @@ typedef struct {
 	unsigned char	recv_host[256];			// 受信したホスト名
 
 	unsigned char	recv_range[256];		// 受信した Range
-	off_t	range_start_pos;			// Rangeデータ 開始位置
-	off_t	range_end_pos;				// Rangeデータ 終了位置
+	size_t	range_start_pos;			// Rangeデータ 開始位置
+	size_t	range_end_pos;				// Rangeデータ 終了位置
         unsigned char   content_length[32];		// Content-Length
         unsigned char   content_type[128];		// PUTのためのContent_type
 	unsigned char	mime_type[128];			//
@@ -382,7 +384,7 @@ typedef struct {
 typedef struct {
 	unsigned char	name[FILENAME_MAX];
 	//u_int64_t		size;
-        off_t			size;
+        size_t			size;
 } _FILE_INFO_T;
 
 
@@ -391,7 +393,7 @@ typedef struct {
 // ****************************************
 typedef struct {
 	unsigned int		file_num;		// 全ファイル数
-	off_t			total_size;		// 全ファイル総byte数
+	size_t			total_size;		// 全ファイル総byte数
 
 	_FILE_INFO_T		file[JOINT_MAX];	// JOINTファイル情報
 
@@ -448,11 +450,11 @@ extern void server_listen(void);
 extern void server_http_process(int accept_socket);
 
 // ヘッダ出力
-extern int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,off_t content_length);
+extern int http_header_response(int accept_socket, HTTP_RECV_INFO* http_recv_info_p,size_t content_length);
 
 // バッファリングしながら in_fd から out_fd へ データを転送
-extern int copy_descriptors(int in_fd,int out_fd,off_t content_length,JOINT_FILE_INFO_T *joint_file_info_p,off_t range_start_pos);
-//extern int copy_descriptors(int in_fd, int out_fd, off_t content_length, JOINT_FILE_INFO_T *joint_file_info_p);
+extern int copy_descriptors(int in_fd,int out_fd,size_t content_length,JOINT_FILE_INFO_T *joint_file_info_p,size_t range_start_pos,int flag=0);
+//extern int copy_descriptors(int in_fd, int out_fd, size_t content_length, JOINT_FILE_INFO_T *joint_file_info_p);
 
 extern int analyze_vob_file(unsigned char *vob_filename, JOINT_FILE_INFO_T *joint_file_info_p );
 
@@ -501,22 +503,24 @@ typedef struct
 {
         int             in_fd;
         int             in_enabled;
+        int             in_enqueue;
         int             out_fd;
         int             out_enabled;
+        int             out_enqueue;
         unsigned char   *send_buf_p;
         int             current_write_size;
         int             current_read_size;
-        off_t           total_read_size;
-        off_t           total_write_size;
-        off_t           content_length;
+        size_t           total_read_size;
+        size_t           total_write_size;
+        size_t           content_length;
         bool            done;
         int             prev;
         int             next;
 } COPY_QUEUE;
 #define MAX_QUEUE 100
 void queue_init(void);
-int  enqueue(int in_fd, int out_fd, off_t content_length);//CUE追加
-int  enqueue_memory(int out_fd, off_t content_length,unsigned char* buffer);
+int  enqueue(int in_fd, int out_fd, size_t content_length,int flag=0);//CUE追加
+int  enqueue_memory(int out_fd, size_t content_length,unsigned char* buffer);
 int  dequeue(int num);                                    //CUE削除
 int  queue_get_num(void);                                 //queue個数
 int  queue_check(int socket);

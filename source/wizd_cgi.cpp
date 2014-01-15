@@ -10,22 +10,18 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "wizd.h"
-static int clear_environment()
-{
-    extern char **environ;
-    char **newenv;
-    newenv = (char**)calloc(40, sizeof(char*));
-    if (newenv == NULL) {
-        debug_log_output("calloc failed. (err = %s)", strerror(errno));
-        return -1;
-    }
-    newenv[0] = NULL;
-    environ = newenv;
-    return 0;
-}
+#include "TinyJS.h"
+#include "TinyJS_Functions.h"
+#include "TinyJS_MathFunctions.h"
+#include <assert.h>
+#include <sys/stat.h>
+#include <string>
+#include <sstream>
+#include <stdio.h>
+
 static int set_environment(const char *name, const char *value)
 {
-    debug_log_output("set_environment: '%s' = '%s'", name, value);
+    //debug_log_output("set_environment: '%s' = '%s'", name, value);
     return setenv(name, value, 1);
 }
 //////////////////////////////////////////////////////////////////////////
@@ -40,7 +36,7 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     char ext[4];
     int pfd[2]={0};
     int pid;
-    int nullfd;
+    //int nullfd;
     request_uri = http_recv_info_p->request_uri;
     strncpy(script_name, request_uri, sizeof(script_name));
     if (http_recv_info_p->send_filename[0] != '/') {
@@ -99,9 +95,10 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         socklen_t socklen;
         unsigned char next_cwd[FILENAME_MAX]={0};
         //close(pfd[0]);//read 側をクローズ
-        clear_environment();
+        //clear_environment();
+        clearenv();
 
-//fastcgi_param  DOCUMENT_URI       $document_uri;
+        //fastcgi_param  DOCUMENT_URI       $document_uri;
         if (http_recv_info_p->content_type[0]) {
             set_environment("CONTENT_TYPE", (char*)http_recv_info_p->content_type);
         }
@@ -143,6 +140,7 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 	set_environment("REDIRECT_STATUS","1");
         set_environment("HTTP_REDIRECT_STATUS", "1" );
         //標準出力を書き込み側に設定
+        close( STDOUT_FILENO );
         dup2(pfd[1], STDOUT_FILENO);
         close(pfd[1]);
 
@@ -154,13 +152,15 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         //} else {
         //    close(STDIN_FILENO);
         //}
+        close( STDIN_FILENO );
         dup2(accept_socket, STDIN_FILENO);
         close(accept_socket);
+        //親プロセスからの書き込みはないのでクローズ
         close(pfd[0]);
 
         //標準エラーをファイルに出力
         //debug_log_output("DEBUG=%s",global_param.debug_cgi_output);
-        nullfd = open(global_param.debug_cgi_output, O_WRONLY);
+        //nullfd = open(global_param.debug_cgi_output, O_WRONLY);
         //if (nullfd >= 0) {
         //    dup2(nullfd, STDERR_FILENO);
         //    close(nullfd);
@@ -168,9 +168,12 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         //    close(STDERR_FILENO);
         //}
         //ヘッダを出力
-        printf("%s", HTTP_OK);
-        printf("%s", HTTP_CONNECTION);
-        printf(HTTP_SERVER_NAME, SERVER_NAME);
+        //sprintf( (char*)send_http_header_buf, "%s%s" HTTP_SERVER_NAME,HTTP_OK,HTTP_CONNECTION,SERVER_NAME);
+        //printf("%s", HTTP_OK);
+        //printf("%s", HTTP_CONNECTION);
+        //printf(HTTP_SERVER_NAME, SERVER_NAME);
+        //fflush(stdout);
+        //send(STDOUT_FILENO, send_http_header_buf, strlen(send_http_header_buf), 0);
         //指定フォルダにcd
         strncpy(next_cwd, script_filename, sizeof(next_cwd));
         cut_after_last_character(next_cwd, '/');
@@ -178,7 +181,125 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             debug_log_output("chdir failed. err = %s", strerror(errno));
         }
         //実行
-        if( strcasecmp(ext,"php") == 0 ){
+        if( strcasecmp(ext,"jss") == 0 ){
+            struct stat results;
+            if (!stat ((char*)script_filename, &results) == 0)
+            {
+                debug_log_output ("Cannot stat file! '%s'\n", script_filename);
+                exit(1);
+            }
+            int size = results.st_size;
+            FILE *file = fopen ((char*)script_filename, "rb");
+
+            /* if we open as text, the number of bytes read may be > the size we read */
+            if (!file)
+            {
+                debug_log_output("Unable to open file '%s'", script_filename );
+                exit(1);
+            }
+            char *buffer = new char[size + 3];
+            long actualRead = fread (buffer+2, 1, size, file);
+            buffer[actualRead+2] = 0;
+            buffer[size+2] = 0;
+            buffer[0] = '?';
+            buffer[1] = '>';
+            fclose (file);
+            
+            CTinyJS  *s = new CTinyJS();
+            registerFunctions (&*s);
+            registerMathFunctions (&*s);
+            //insert Environment to js
+            extern char** environ;
+            wString script1;
+            wString script2;
+            wString script3;
+            wString script4;
+            s->root->addChild ("_SERVER", new CScriptVar (TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT));
+            s->root->addChild ("_GET", new CScriptVar (TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT));
+            if( http_recv_info_p->isGet== 3 ){
+                s->root->addChild ("_POST", new CScriptVar (TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT));
+            }
+            try
+            {
+                //環境変数をJSに展開
+                for( int i=0 ; environ[i] != NULL ; i++ ){
+                    script1 = environ[i];
+                    int pos = script1.Pos("=");
+                    if( (size_t)pos != wString::npos && pos > 1){
+                         script2 = script1.substr(pos+1);
+                         script1 = script1.substr(0,pos);
+                         script1 = "var _SERVER."+script1+"=\""+script2+"\";";
+                         //debug_log_output( "%s", script1.c_str() );
+                         s->execute( script1 );
+                    }
+                }
+                //query stringをgetに展開
+                script3 = query_string;
+                while( script3.length() ){
+                    int pos = script3.Pos("&");
+                    if( pos > 1 ){
+                        script1 = script3.substr(0,pos);
+                        int pos2 = script1.Pos("=");
+                        script2 = "var _GET."+script1.substr(0,pos2)+"=\""+script1.substr(pos2+1).uri_decode(1)+"\";";
+                        script3 = script3.substr(pos+1);
+                    }else{
+                        script1 = script3;
+                        int pos2 = script1.Pos("=");
+                        script2 = "var _GET."+script1.substr(0,pos2)+"=\""+script1.substr(pos2+1).uri_decode(1)+"\";";
+                        script3 = "";
+                    }
+                    //debug_log_output( script2.c_str() );
+                    s->execute( script2 );
+                }
+                if( http_recv_info_p->isGet== 3 ){
+                    char buf[1024];
+                    int num;
+                    while(true){
+                        num = read( STDIN_FILENO, buf, 1024);
+                        if( num <= 0 ){
+                            break;
+                        }
+                        script4 += buf;
+                    }
+                    //debug_log_output("POST %s", script4.c_str() );
+                    while( script4.length() ){
+                        int pos = script4.Pos("&");
+                        if( pos > 1 ){
+                            script1 = script4.substr(0,pos);
+                            int pos2 = script1.Pos("=");
+                            script2 = "var _POST."+script1.substr(0,pos2)+"=\""+script1.substr(pos2+1).uri_decode(1)+"\";";
+                            script4 = script4.substr(pos+1);
+                        }else{
+                            script1 = script4;
+                            int pos2 = script1.Pos("=");
+                            script2 = "var _POST."+script1.substr(0,pos2)+"=\""+script1.substr(pos2+1).uri_decode(1)+"\";";
+                            script4 = "";
+                        }
+                        //debug_log_output( script2.c_str() );
+                        s->execute( script2 );
+                    }
+                }
+                s->execute (buffer);
+            }
+            catch (CScriptException * e)
+            {
+                //debug_log_output("SCRIPT ERROR: %s\n", e->text.c_str ());
+                printf("SCRIPT ERROR: %s\n", e->text.c_str ());
+                delete s;
+                delete[] buffer;
+                exit(1);
+            }
+            //fflush(stdout);
+            //bool pass = s.root->getParameter ("result")->getBool ();
+            delete s;
+            delete[] buffer;
+            debug_log_output("ServerSide JavaScript end");
+        }else if( strcasecmp(ext,"php") == 0 ){
+            wString::wStringInit();
+            wString str;
+            str.headerInit(0,0);
+            str.headerPrint(0);
+            wString::wStringEnd();
             if (execl("/usr/bin/php-cgi","php-cgi", (char*)script_filename, NULL) < 0) {
                 debug_log_output("CGI EXEC ERROR. "
                 "/usr/bin/php script = '%s', argv[0] = '%s', err = %s"
@@ -188,8 +309,12 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                 );
                 printf("\nPHP EXEC ERROR");
             }
-            exit(0);
         }else{
+            wString::wStringInit();
+            wString str;
+            str.headerInit(0,0);
+            str.headerPrint();
+            wString::wStringEnd();
             if (execl((char*)script_filename, script_exec_name, NULL) < 0) {
                 debug_log_output("CGI EXEC ERROR. "
                 "script = '%s', argv[0] = '%s', err = %s"
@@ -199,13 +324,15 @@ int http_cgi_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                 );
                 printf("\nCGI EXEC ERROR");
             }
-            exit(0);
         }
+        exit( 0 );
     }
     // parent
     close(pfd[1]);//書き込み側をクローズ
     //ヘッダ出力
-    set_blocking_mode(accept_socket, 0); /* non_blocking */
-    copy_descriptors(pfd[0], accept_socket, 0, NULL,0);
+    set_blocking_mode(accept_socket, 1); /* non_blocking */
+    set_blocking_mode(pfd[0],1);
+    Sleep(10);
+    copy_descriptors(pfd[0], accept_socket, 0, NULL,0,1);
     return 0;
 }

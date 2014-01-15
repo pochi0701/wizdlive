@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <dirent.h>
+#include <error.h>
+#include <cerrno>
 #include "wizd.h"
 typedef enum {_OPENDIR = -2,_NOTFOUND = -1,_FILE = 0, _DIR = 1, _PLW = 3, _TSV = 4, _VOB = 5, _CGI=6} FILETYPES;
 static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info);
@@ -129,22 +131,22 @@ void 	server_http_process(int accept_socket)
         http_not_found_response(accept_socket, &http_recv_info);
     }else if ( result == _FILE ){ // ファイル実体ならば、実体転送。
         // actionに、ImageViewerが指示されている？
-        if ( strcasecmp(http_recv_info.action, "ImageView" ) == 0){
-            // ----------------------------------------
-            // イメージファイルビューアー
-            // ----------------------------------------
-            debug_log_output("Image Viewer start!\n");
-            http_image_viewer(accept_socket, &http_recv_info);
-            debug_log_output("Image Viewer end!\n");
-            // actionに、SinglePlayが指示されている？
-        }else if ( strcasecmp(http_recv_info.action, "SinglePlay" ) == 0){
-            // ----------------------------------------
-            // Musicファイル 単独プレイ
-            // ----------------------------------------
-            debug_log_output("Single Play start!\n");
-            http_music_single_play(accept_socket, &http_recv_info);
-            debug_log_output("Single Play end!\n");
-        }else{ // アクションに指定無し。
+        //if ( strcasecmp(http_recv_info.action, "ImageView" ) == 0){
+        //    // ----------------------------------------
+        //    // イメージファイルビューアー
+        //    // ----------------------------------------
+        //    debug_log_output("Image Viewer start!\n");
+        //    http_image_viewer(accept_socket, &http_recv_info);
+        //    debug_log_output("Image Viewer end!\n");
+        //    // actionに、SinglePlayが指示されている？
+        //}else if ( strcasecmp(http_recv_info.action, "SinglePlay" ) == 0){
+        //    // ----------------------------------------
+        //    // Musicファイル 単独プレイ
+        //    // ----------------------------------------
+        //    debug_log_output("Single Play start!\n");
+        //    http_music_single_play(accept_socket, &http_recv_info);
+        //    debug_log_output("Single Play end!\n");
+        //}else{ // アクションに指定無し。
             // ----------------------------------------
             // ファイルの実体
             // HTTPリクエストヘッダに従ってデータを返信。
@@ -152,7 +154,7 @@ void 	server_http_process(int accept_socket)
             debug_log_output("HTTP response start!\n");
             http_file_response(accept_socket, &http_recv_info);
             debug_log_output("HTTP response end!\n");
-        }
+        //}
     }else if ( result == _PLW ){
         // ---------------------------------------------
         // plw/uplファイル(`･ω･´)
@@ -208,18 +210,21 @@ void 	server_http_process(int accept_socket)
         // ディレクトリ
         // ----------------------------------------
         // actionに、OptionMenuが指示されている？
-        }else if ( strcasecmp(http_recv_info.action, "OptionMenu" ) == 0){
-            debug_log_output("HTTP Option menu create.\n");
-            http_option_menu(accept_socket, &http_recv_info);
-            debug_log_output("HTTP Option menu end.\n");
-        }else{	// アクションに指定無し。
-            // -------------------------------------
-            // ディレクトリ検出
-            // ファイルリストを生成して返信。
-            // -------------------------------------
-            debug_log_output("HTTP file menu create.\n");
-            http_menu(accept_socket, &http_recv_info, result == _DIR ? _FILE : _DIR);
-            debug_log_output("HTTP file menu end.\n");
+        //}else if ( strcasecmp(http_recv_info.action, "OptionMenu" ) == 0){
+        //    debug_log_output("HTTP Option menu create.\n");
+        //    http_option_menu(accept_socket, &http_recv_info);
+        //    debug_log_output("HTTP Option menu end.\n");
+        //}else{	// アクションに指定無し。
+        //    // -------------------------------------
+        //    // ディレクトリ検出
+        //    // ファイルリストを生成して返信。
+        //    // -------------------------------------
+        //    debug_log_output("HTTP file menu create.\n");
+        //    http_menu(accept_socket, &http_recv_info, result == _DIR ? _FILE : _DIR);
+        //    debug_log_output("HTTP file menu end.\n");
+        }else{
+        //任意のCGIにリダイレクトする
+        //close(accept_socket);
         }
     }
     // ソケットクローズ
@@ -231,6 +236,7 @@ FILETYPES http_index( HTTP_RECV_INFO* http_recv_info_p )
 {
     unsigned char       document_path[MYFILENAME_MAX];
     unsigned char       read_filename[MYFILENAME_MAX];
+    unsigned char       file_extension[16];
     //Path Normalize.
     strncpy((char*)document_path, (char*)http_recv_info_p->send_filename, sizeof(document_path) );
     if ( document_path[ strlen((char*)document_path)-1 ] != DELIMITER[0] ){// 最後が'/'じゃなかったら、'/'を追加
@@ -243,24 +249,44 @@ FILETYPES http_index( HTTP_RECV_INFO* http_recv_info_p )
     if( access( (char*)read_filename , 0 ) == 0 ){
          strcat(http_recv_info_p->request_uri,"index.html");
          strcpy(http_recv_info_p->send_filename,read_filename);
+         // ファイルの拡張子より、Content-type を決定
+         filename_to_extension(http_recv_info_p->send_filename, file_extension, sizeof(file_extension));
+         debug_log_output("http_recv_info_p->send_filename='%s', file_extension='%s'\n", http_recv_info_p->send_filename, file_extension);
+         // 拡張子から、mime_typeを導く。
+         check_file_extension_to_mime_type(file_extension, http_recv_info_p->mime_type,  sizeof(http_recv_info_p->mime_type));
          return _FILE;
     }
     snprintf((char*)read_filename, sizeof( read_filename),"%sindex.htm",(char*)document_path );
     if( access( (char*)read_filename , 0 ) == 0 ){
          strcat(http_recv_info_p->request_uri,"index.htm");
          strcpy(http_recv_info_p->send_filename,read_filename);
+         // ファイルの拡張子より、Content-type を決定
+         filename_to_extension(http_recv_info_p->send_filename, file_extension, sizeof(file_extension));
+         debug_log_output("http_recv_info_p->send_filename='%s', file_extension='%s'\n", http_recv_info_p->send_filename, file_extension);
+         // 拡張子から、mime_typeを導く。
+         check_file_extension_to_mime_type(file_extension, http_recv_info_p->mime_type,  sizeof(http_recv_info_p->mime_type));
          return _FILE;
     }
     snprintf((char*)read_filename, sizeof( read_filename),"%sindex.php",(char*)document_path );
     if( access( (char*)read_filename , 0 ) == 0 ){
          strcat(http_recv_info_p->request_uri,"index.php");
          strcpy(http_recv_info_p->send_filename,read_filename);
+         // ファイルの拡張子より、Content-type を決定
+         filename_to_extension(http_recv_info_p->send_filename, file_extension, sizeof(file_extension));
+         debug_log_output("http_recv_info_p->send_filename='%s', file_extension='%s'\n", http_recv_info_p->send_filename, file_extension);
+         // 拡張子から、mime_typeを導く。
+         check_file_extension_to_mime_type(file_extension, http_recv_info_p->mime_type,  sizeof(http_recv_info_p->mime_type));
          return _CGI;
     }
     snprintf((char*)read_filename, sizeof( read_filename),"%sindex.cgi",(char*)document_path );
     if( access( (char*)read_filename , 0 ) == 0 ){
          strcat(http_recv_info_p->request_uri,"index.cgi");
          strcpy(http_recv_info_p->send_filename,read_filename);
+         // ファイルの拡張子より、Content-type を決定
+         filename_to_extension(http_recv_info_p->send_filename, file_extension, sizeof(file_extension));
+         debug_log_output("http_recv_info_p->send_filename='%s', file_extension='%s'\n", http_recv_info_p->send_filename, file_extension);
+         // 拡張子から、mime_typeを導く。
+         check_file_extension_to_mime_type(file_extension, http_recv_info_p->mime_type,  sizeof(http_recv_info_p->mime_type));
          return _CGI;
     }
     return _DIR;
@@ -299,6 +325,7 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
         if ( recv_len == 0 ){ // 空行検知。ヘッダ受信終了。
             break;
         }else if ( recv_len < 0 ){ // 受信失敗
+            debug_log_output("header read error error=%s\n", strerror(errno));
             return ( -1 );
         }
         // --------------------------
@@ -508,14 +535,14 @@ static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p)
     // ------------------------------------------------------------
     // ファイルあるかチェック。
     // ------------------------------------------------------------
-    result = stat(http_recv_info_p->send_filename, &send_filestat);
+    result = stat((char*)http_recv_info_p->send_filename, &send_filestat);
     debug_log_output("stat: result=%d, st_mode=0x%04X, S_ISREG=%d, S_ISDIR=%d\n",
         result, send_filestat.st_mode, S_ISREG(send_filestat.st_mode), S_ISDIR(send_filestat.st_mode) );
     // stat()の結果で分岐。
     if ( ( result == 0 ) && ( S_ISREG(send_filestat.st_mode) == 1 ) ){
         // ファイル実体と検知
         debug_log_output("'%s' is File!!", http_recv_info_p->send_filename);
-        debug_log_output("send_filestat.st_size= %lld\n", send_filestat.st_size);
+        debug_log_output("send_filestat.st_size= %ld\n", send_filestat.st_size);//%lld?
         // -------------------------------------------
         // ファイルの拡張子より、Content-type を決定
         // -------------------------------------------
@@ -538,6 +565,9 @@ static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p)
             // CGIの実行が不許可なら、Not Found.
             return ( global_param.flag_execute_cgi ? _CGI : _NOTFOUND );	// cgiファイル
         }else if ( strcasecmp(file_extension, "php") == 0  ){
+            // CGIの実行が不許可なら、Not Found.
+            return ( global_param.flag_execute_cgi ? _CGI : _NOTFOUND );  // cgiファイル
+        }else if ( strcasecmp(file_extension, "jss") == 0  ){
             // CGIの実行が不許可なら、Not Found.
             return ( global_param.flag_execute_cgi ? _CGI : _NOTFOUND );  // cgiファイル
         }else{
@@ -573,13 +603,13 @@ static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p)
         // ------------------------------------------------------------
         // Skin置き場にファイルあるかチェック。
         // ------------------------------------------------------------
-        result = stat(http_recv_info_p->send_filename, &send_filestat);
+        result = stat((char*)http_recv_info_p->send_filename, &send_filestat);
         debug_log_output("stat: result=%d, st_mode=%04X, S_ISREG=%d\n", result, send_filestat.st_mode, S_ISREG(send_filestat.st_mode));
         // ファイル実体と検知。
         if ( ( result == 0 ) && (S_ISREG(send_filestat.st_mode) == 1 ) ){
             // ファイル実体と検知
             debug_log_output("'%s' is File!!", http_recv_info_p->send_filename);
-            debug_log_output("send_filestat.st_size= %lld\n", send_filestat.st_size);
+            debug_log_output("send_filestat.st_size= %ld\n", send_filestat.st_size);//%lld?
             // -------------------------------------------
             // ファイルの拡張子より、Content-type を決定
             // -------------------------------------------

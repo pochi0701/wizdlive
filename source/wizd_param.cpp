@@ -63,6 +63,7 @@ MIME_LIST_T mime_list[] = {
 {(unsigned char*)"text/plain"     ,(unsigned char*)"m3u"    ,TYPE_STREAM     ,   TYPE_MUSICLIST  }, // m3u でもOK?
 {(unsigned char*)"text/plain"     ,(unsigned char*)"tsv"    ,TYPE_STREAM     ,   TYPE_PSEUDO_DIR }, // tsv = 仮想ディレクトリ
 {(unsigned char*)"text/javascript",(unsigned char*)"js"     ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   }, //JavaScript
+{(unsigned char*)"text/javascript",(unsigned char*)"jss"    ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   }, //JavaScript
 {(unsigned char*)"text/css"       ,(unsigned char*)"css"    ,TYPE_NO_STREAM  ,   TYPE_DOCUMENT   }, //CSS
 {NULL, NULL, (-1), (-1) }
 };
@@ -674,7 +675,7 @@ static void line_buffer_clearance(unsigned char *line_buf)
     // 頭に' 'がいたら削除。
     cut_first_character(line_buf, ' ');
     // 最後に ' 'がいたら削除。
-    cut_character_at_linetail(line_buf, ' ');
+    cut_character_at_linetail((char*)line_buf, ' ');
     return;
 }
 //========================================================
@@ -721,7 +722,7 @@ void config_sanity_check()
         strncpy(global_param.document_root, DEFAULT_DOCUMENT_ROOT
         , sizeof(global_param.document_root));
     }
-    if (stat(global_param.document_root, &sb) != 0) {
+    if (stat((char*)global_param.document_root, &sb) != 0) {
         debug_log_output("document_root: %s: %s", global_param.document_root, strerror(errno));
         exit(-1);
     }
