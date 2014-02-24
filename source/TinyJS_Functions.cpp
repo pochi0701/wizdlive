@@ -33,14 +33,17 @@
 #include <cstdlib>
 #include <sstream>
 #include <stdio.h>
-
 using namespace std;
-void headerCheck(int flag);
+void headerCheck(int mysocket, int* printed, wString* headerBuf,int flag);
 // ----------------------------------------------- Actual Functions
 void js_print(CScriptVar *v, void *userdata) {
-    headerCheck(1);
+    CTinyJS* js = (CTinyJS*)userdata;
+    headerCheck(js->socket, &(js->printed), js->headerBuf,1);
     wString str = v->getParameter("text")->getString();
-    int num = write( STDOUT_FILENO, str.c_str(), str.length());
+    int num = write( js->socket, str.c_str(), str.length());
+    if( num <0 ){
+        debug_log_output( "Script Write Error at js_print" );
+    }
     //debug_log_output( "print %s %d", str.c_str(), num );
     //printf("%s", v->getParameter("text")->getString().c_str());
 }
@@ -134,10 +137,12 @@ void scStringSplit(CScriptVar *c, void *) {
     result->setArray();
     int length = 0;
 
+    //consider sepatator length;
+    int inc = sep.length();
     size_t pos = str.find(sep);
     while (pos != string::npos) {
       result->setArrayIndex(length++, new CScriptVar(str.substr(0,pos)));
-      str = str.substr(pos+1);
+      str = str.substr(pos+inc);
       pos = str.find(sep);
     }
 
@@ -402,11 +407,11 @@ void scCommand(CScriptVar *c, void *) {
     c->getReturnVar()->setInt(ret);
 }
 //Header
-extern wString headerbuf;
-void scHeader(CScriptVar *c, void *) {
-    headerCheck(0);
+void scHeader(CScriptVar *c, void *userdata) {
+    CTinyJS* js = (CTinyJS*)userdata;
+    headerCheck(js->socket, &(js->printed), js->headerBuf, 0);
     wString str = c->getParameter("str")->getString();
-    int res = headerbuf.header(str.c_str());
+    int res = js->headerBuf->header(str.c_str());
     int ret = (res==0)?true:false;
     c->getReturnVar()->setInt(ret);
 }
@@ -443,7 +448,7 @@ void registerFunctions(CTinyJS *tinyJS) {
     tinyJS->addNative("function Array.contains(obj)", scArrayContains, 0);
     tinyJS->addNative("function Array.remove(obj)", scArrayRemove, 0);
     tinyJS->addNative("function Array.join(separator)", scArrayJoin, 0);
-    tinyJS->addNative("function print(text)", &js_print, 0);
+    tinyJS->addNative("function print(text)", &js_print, tinyJS);
     tinyJS->addNative("function FILE.file_exists(path)", scFileExists, 0 );
     tinyJS->addNative("function FILE.dir_exists(path)", scDirExists, 0 );
     tinyJS->addNative("function htmlspecialchars(uri)", scHtmlSpecialChars, 0 );
@@ -464,6 +469,6 @@ void registerFunctions(CTinyJS *tinyJS) {
     tinyJS->addNative("function FILE.saveToFile(path,data)", scSaveToFile, 0 );
     tinyJS->addNative("function FILE.copy(pathf,patht)", scFileCopy, 0 );
     tinyJS->addNative("function command(path)", scCommand, 0 );
-    tinyJS->addNative("function header(str)", scHeader, 0 );
+    tinyJS->addNative("function header(str)", scHeader, tinyJS );
 }
 

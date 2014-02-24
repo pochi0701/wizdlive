@@ -123,7 +123,7 @@
 #define	HTTP_HOST		"Host:"
 #define HTTP_ACCEPT		"Accept:"
 #define HTTP_CONTENT_LENGTH1	"Content-Length:"
-#define HTTP_CONTENT_TYPE1      "Content-TYpe:"
+#define HTTP_CONTENT_TYPE1      "Content-Type:"
 
 #define	HTTP_OK 		"HTTP/1.0 200 OK\r\n"
 #define	HTTP_NOT_FOUND 		"HTTP/1.0 404 File Not Found\r\n"
@@ -213,7 +213,7 @@ typedef struct {
 	unsigned char	sort[32];			// ?sort=の内容
 	unsigned char 	focus[32];			// ?focus=の内容
 	unsigned char 	request_uri[FILENAME_MAX];	// 受信した生のURI
-
+//        int             accept_socket;                  // 送受信ソケット
 	int		flag_pc;			// クライアントが PC かどうか. 非0 = PC
 	int		isGet;				// GETなら1HEADなら2POSTなら3
 } HTTP_RECV_INFO;
@@ -495,6 +495,7 @@ extern void check_file_extension_to_mime_type(const unsigned char *file_extensio
 // 日本語文字コード変換(NKFラッパー）
 extern void convert_language_code(const unsigned char *in, unsigned char *out, size_t len, int in_flag, int out_flag);
 
+#ifndef use_thread
 //EPOLL追加
 extern int add_epoll( int socket, int rwtrigger );
 //EPOLL削除
@@ -529,6 +530,9 @@ int  copy_body(COPY_QUEUE* ci);
 int add_epoll( int socket, int rwtrigger );
 int del_epoll( int socket );
 // ========================================================
+#else
+int copy_body(int in_fd, int _out_fd, size_t content_length);
+#endif
 // 文字コード変換。
 // libnkfをそのまま使用。作者様に感謝ヽ(´ー｀)ノ
 // http://www.mr.hum.titech.ac.jp/~morimoto/libnkf/

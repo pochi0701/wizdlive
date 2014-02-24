@@ -13,10 +13,9 @@
 #include <errno.h>
 #include <dirent.h>
 #include "wizd.h"
-#include "castpatch.h"
 extern unsigned char *base64(unsigned char *str);
 extern int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max);
-extern void set_blocking_mode(int fd, int flag);
+extern void set_nonblocking_mode(int fd, int flag);
 extern int http_uri_to_scplaylist_create(int accept_socket, char *uri_string);
 #define MAX_LINE 100 /* 記憶する、HTTPヘッダの最大行数 */
 #define LINE_BUF_SIZE 2048 /* 行バッファ */
@@ -52,7 +51,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         } else {
             strncpy(buff, p_uri_string+17, sizeof(buff));
         }
-        replace_character(buff, sizeof(buff), ".pls", "");
+        replace_character(buff, ".pls", "");
         return http_uri_to_scplaylist_create(accept_socket, (char*)buff);
     }
     if (strncmp(p_uri_string, "/-.-http://", 11)) {
@@ -124,8 +123,8 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         debug_log_output("sock: %d", sock);
         return -1;
     }
-    set_blocking_mode(sock, 0); /* blocking mode */
-    set_blocking_mode(accept_socket, 0); /* blocking mode */
+    set_nonblocking_mode(sock, 0); /* blocking mode */
+    set_nonblocking_mode(accept_socket, 0); /* blocking mode */
     write(sock, send_http_header_buf, strlen(send_http_header_buf));
     debug_log_output("================= send to proxy\n");
     debug_log_output("%s", send_http_header_buf);
@@ -153,9 +152,9 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             sprintf((char*)line_buf[line], "Location: /-.-%s", work_buf + strlen(HTTP_RECV_LOCATION));
         }else if ( strstr( line_buf[line],"charset") ){
             if ( strstr( line_buf[line], "EUC-JP" )){
-                replace_character( line_buf[line], strlen(line_buf[line]),"EUC-JP", "UTF-8");
+                replace_character( line_buf[line], "EUC-JP", "UTF-8");
             }else if ( strstr ( line_buf[line], "Shift_JIS" )) {
-                replace_character( line_buf[line], strlen(line_buf[line]),"Shift_JIS", "UTF-8");
+                replace_character( line_buf[line], "Shift_JIS", "UTF-8");
             }
         }
         if (len <= 2) {
@@ -178,12 +177,13 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         for (i=0; i<line; i++) {
             //長さは不定なので送らない
             if (!strncasecmp(line_buf[i], HTTP_RECV_CONTENT_LENGTH, strlen(HTTP_RECV_CONTENT_LENGTH))) continue;
-            *q = '\0';
+            //*q = '\0';
             p = work_buf;
             q = work_buf2;
             if (flag_conv_html_code) {
                convert_language_code(line_buf[i], work_buf, LINE_BUF_SIZE, CODE_AUTO, global_param.client_language_code);
             }
+            //strcpy( work_buf, line_buf[i]);
 //            write(accept_socket, line_buf[i], strlen(line_buf[i]));
 //            debug_log_output("sent html: '%s' len = %d", line_buf[i], strlen(line_buf[i]));
             write(accept_socket, work_buf, strlen(line_buf[i]));
@@ -205,9 +205,9 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                 // 漢字コードの変換をやめる
             //    flag_conv_html_code = 0;
                if ( strstr( work_buf, "EUC-JP" )){
-                   replace_character( work_buf, strlen(work_buf),"EUC-JP", "UTF-8");
+                   replace_character( work_buf, "EUC-JP", "UTF-8");
                }else if ( strstr ( work_buf, "Shift_JIS" )) {
-                   replace_character( work_buf, strlen(work_buf),"Shift_JIS", "UTF-8");
+                   replace_character( work_buf, "Shift_JIS", "UTF-8");
                }
             }
             p = work_buf;
@@ -297,11 +297,12 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             q = work_buf2;
             if (flag_conv_html_code) {
                 convert_language_code(p, q, LINE_BUF_SIZE, CODE_AUTO, global_param.client_language_code);
+                //strcpy( q,p);
                 p = q;
             }
             snprintf(rep_str, sizeof(rep_str), "|http://%s/-.-http://"
             , http_recv_info_p->recv_host);
-            replace_character(p, LINE_BUF_SIZE, "|http://", rep_str);
+            replace_character(p, "|http://", rep_str);
             write(accept_socket, p, strlen(p));
             debug_log_output("sent html: %s", p);
         }

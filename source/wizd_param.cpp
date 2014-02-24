@@ -19,7 +19,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "wizd.h"
-#include "castpatch.h"
 static int config_file_open(void);
 static int config_file_read_line(int fd, unsigned char *line_buf, int line_buf_size);
 static void line_buffer_clearance(unsigned char *line_buf);
@@ -669,7 +668,7 @@ static void line_buffer_clearance(unsigned char *line_buf)
     // '#'より後ろを削除。
     cut_after_character(line_buf, '#');
     // '\t'を' 'に置換
-    replace_character(line_buf, sizeof(line_buf), "\t", " ");
+    replace_character(line_buf, "\t", " ");
     // ' 'が重なっているところを削除
     duplex_character_to_unique(line_buf, ' ');
     // 頭に' 'がいたら削除。

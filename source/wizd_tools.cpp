@@ -28,12 +28,17 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netdb.h>
+#include <pthread.h>
+
 static unsigned char		debug_log_filename[FILENAME_MAX];	// デバッグログ出力ファイル名(フルパス)
 static unsigned char		debug_log_initialize_flag  = (1);	// デバッグログ初期化フラグ
+#ifdef use_thread
+extern pid_t gettid(void);
+#endif
 /********************************************************************************/
 // sentence文字列内のkey文字列をrep文字列で置換する。
 /********************************************************************************/
-void replace_character(unsigned char *sentence, const unsigned char *key, const unsigned char *rep)
+void replace_character(unsigned char *sentence, const char *key, const char *rep)
 {
 #if 0
     int sentence_buf_size = 4096;
@@ -998,7 +1003,7 @@ void debug_log_output(const char *fmt, ...)
     unsigned char       buf[1024*5+1]={0};
     unsigned char       work_buf[1024*4+1]={0};
     unsigned char       date_and_time[32];
-    unsigned char       replace_date_and_time[48]={0};
+    char       replace_date_and_time[48]={0};
     struct timeval tv;
     va_list     arg;
     int         len;
@@ -1026,14 +1031,17 @@ void debug_log_output(const char *fmt, ...)
     // 挿入用文字列生成( "\ndate_and_time" になる)
     make_datetime_string(date_and_time);
     gettimeofday(&tv,NULL);
+#ifdef use_thread
+    snprintf((char*)replace_date_and_time, sizeof(replace_date_and_time), "\n%s.%06d[%ld] ", date_and_time, (int)tv.tv_usec, pthread_self() );
+#else
     snprintf((char*)replace_date_and_time, sizeof(replace_date_and_time), "\n%s.%06d[%d] ", date_and_time, (int)tv.tv_usec, getpid() );
-
+#endif
 
     // 出力文字列生成開始。
     //QueryPerformanceCounter((LARGE_INTEGER*)&num);
     snprintf((char*)buf, sizeof(buf), "%s.%06d[%d] %s", date_and_time, (int)tv.tv_usec, getpid(), work_buf);
     //last = num;
-    replace_character(buf, (unsigned char*)"\n", replace_date_and_time); // \nの前にdate_and_timeを挿入
+    replace_character(buf, "\n", replace_date_and_time); // \nの前にdate_and_timeを挿入
     // 一番最後に'\n'をつける。
     strncat((char*)buf, "\n", sizeof(buf)-strlen((char*)buf) );
     // =====================
@@ -1676,7 +1684,7 @@ struct sockaddr_in sockadd={0};     //ＳＯＣＫＥＴ構造体
         return INVALID_SOCKET;
     }
     debug_log_output("Sock Connected\n");
-    set_blocking_mode(sock, 0);    /* blocking */
+    set_nonblocking_mode(sock, 0);    /* blocking */
     return sock;
 }
 //---------------------------------------------------------------------------
@@ -1704,7 +1712,7 @@ int open(unsigned char *pathname, int flags, mode_t mode)
 #ifdef linux
 //ファイルディスクリプタブロック設定
 //1:ノンブロッキング 0:ブロッキング
-void set_blocking_mode(int fd, int flag)
+void set_nonblocking_mode(int fd, int flag)
 {
     int res, nonb = 0;
     nonb |= O_NONBLOCK;

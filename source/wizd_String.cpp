@@ -66,8 +66,8 @@ wString::wString(void)
 {
     //初期化
     len = 0;
-    total = 0;
-    String = NULL;
+    total = 1;
+    String = (char*)new char[1];
 }
 //---------------------------------------------------------------------------
 //文字列コンストラクタ
@@ -75,15 +75,9 @@ wString::wString(const char *str)
 {
     //初期化
     len = strlen(str);
-    if( len ){
-        total = len+1;
-        String = (char*)new char[total];
-        strcpy(String, str);
-    }else{
-        total = 1;
-        String = (char*)new char[1];
-        String[0] = 0;
-    }
+    total = len+1;
+    String = (char*)new char[total];
+    strcpy(String, str);
 }
 //---------------------------------------------------------------------------
 //コピーコンストラクタ
@@ -91,83 +85,30 @@ wString::wString(const wString& str)
 {
     //初期化
     len   = str.len;
-    if( str.len ){
-        total = str.total;
-        String = new char[str.total];
-        memcpy(String,str.String,str.total);
-        //*String = 0;
-    }else{
-        total = 1;
-        String = (char*)new char[1];
-        String[0] = 0;
-    }
+    total = str.total;
+    String = new char[str.total];
+    memcpy(String,str.String,total);
 }
 //---------------------------------------------------------------------------
 //デストラクタ
 wString::~wString()
 {
-//    for( int i = 0 ; i < MAXSAC ; i++ ){
-//        if( String && String == sac[i]->String ){
-//            int a = 1;
-//            break;
-//        }
-//    }
-    if( String ){
-        len = 0;
-        delete [] String;
-        String = NULL;
-    }
+    delete [] String;
 }
 //---------------------------------------------------------------------------
 //ディープコピーメソッド
 void wString::copy(wString* src,const wString* dst)
 {
-    //コピー元に
-    if( dst->len ){
-        if( src->total <= dst->len ){
-            //realloc処理
-            char* tmp = myrealloc(src->String, src->len, dst->len);
-            //printf("assert\n");
-            assert(tmp != 0 );
-            src->String = tmp;
-            src->total = dst->len+1;
-        }
-        //ここで両者とも!= NULL
-            //printf("assert\n");
-        assert( src->String != 0);
-        assert( dst->String != 0);
-        memcpy( src->String, dst->String,dst->len+1);
-    //dstはNULL
-    }else{
-        if( src->len ){
-            *src->String = 0;
-        }
-    }
+    src->myrealloc(dst->total);
+    memcpy( src->String, dst->String,dst->total);
     src->len = dst->len;
 }
 //---------------------------------------------------------------------------
 //ディープコピーメソッド
 void wString::copy(wString* src,const wString& dst)
 {
-    if( dst.len ){
-        if( src->total <= dst.len ){
-            char* tmp = myrealloc(src->String,src->len, dst.len);
-            //printf("assert\n");
-            assert(tmp != 0 );
-            src->String = tmp;
-            src->total = dst.len+1;
-        }
-        //ここで両者とも!= NULL
-            //printf("assert\n");
-        assert( src->String != 0);
-        assert( dst.String != 0);
-        memcpy( src->String, dst.String, dst.len+1);
-    //dstはNULL
-    }else{
-        if( src->len ){
-            *src->String = 0;
-        }
-    }
+    src->myrealloc(dst.total);
+    memcpy( src->String, dst.String,dst.total);
     src->len = dst.len;
 }
 //---------------------------------------------------------------------------
@@ -191,11 +132,7 @@ wString& operator+(const char* str1, wString str2 )
 {
     wString* temp = wString::NextSac();
     size_t newLen = strlen(str1)+str2.len;
-    if( temp->total<=newLen ){
-        char* tmp = wString::myrealloc(temp->String,temp->len, newLen);
-        temp->String = tmp;
-        temp->total = newLen+1;
-    }
+    temp->myrealloc(newLen+1);
     strcpy(temp->String, str1);
     strcat(temp->String, str2.String);
     temp->len = newLen;
@@ -204,73 +141,30 @@ wString& operator+(const char* str1, wString str2 )
 //---------------------------------------------------------------------------
 void wString::operator+=(const wString& str)
 {
-    unsigned int num = len+str.len;
-    //
-    if( str.len ){
-        //領域が十分ある
-        if( total >= num+1 ){
-            strcpy( String+len, str.String );
-            len   = num;
-        //コピー元が存在し領域不十分
-        }else{
-            //がばっと１６バイトふやしておく
-            total = num+16;
-            //realloc処理
-            char* tmp = myrealloc(String,len, total-1);
-            //printf("assert\n");
-            assert( tmp != NULL );
-            strcpy( tmp+len, str.String );
-            len    = num;
-            String = tmp;
-        }
-    }
+    unsigned int newLen = len+str.len;
+    myrealloc(newLen+1);
+    memcpy(String+len,str.String,str.len);
+    String[newLen] =0;
+    len    = newLen;
     return;
 }
 //---------------------------------------------------------------------------
 void wString::operator+=(const char* str)
 {
-    unsigned int snum = strlen(str);
-    unsigned int num = len+snum;
-    if( snum ){
-        if( total >= num+1 ){
-            strcpy( String+len, str );
-            len   = num;
-        }else{
-            //がばっと１６バイト増やしておく
-            total = num+16;
-            //realloc処理
-            char* tmp = myrealloc(String, len, total-1);
-            //printf("assert\n");
-            assert( tmp != NULL );
-            strcpy( tmp+len, str );
-            len    = num;
-            String = tmp;
-        }
-    }
+    unsigned int slen = strlen(str);
+    unsigned int newLen = slen+len;
+    myrealloc(newLen+1);
+    strcpy( String+len, str );
+    len = newLen;
     return;
 }
 //---------------------------------------------------------------------------
 void wString::operator+=(char ch)
 {
-    unsigned int num = len+1;
-    //
-    //領域が十分ある
-    if( total > num ){
-        String[len] = ch;
-        String[len+1] = 0;
-        len   = num;
-    //コピー元が存在し領域不十分
-    }else{
-        //がばっと１６バイト増やしておく
-        total = num+16;
-        //realloc処理
-        char* tmp = myrealloc(String,len, total-1);
-        assert( tmp != NULL );
-        tmp[len] = ch;
-        tmp[len+1] = 0;
-        len    = num;
-        String = tmp;
-    }
+    myrealloc(len+16);
+    String[len] = ch;
+    String[len+1] = 0;
+    len+=1;
     return;
 }
 //---------------------------------------------------------------------------
@@ -362,64 +256,18 @@ bool wString::operator<(const char* str) const
 //---------------------------------------------------------------------------
 void wString::operator=(const wString& str)
 {
-//    printf( "1--%s %d %d\n", String, (int)len, (int)total );
-//    printf( "2--%s %d %d\n", str.String, (int)str.len, (int)str.total );
-    //コピー元文字列の長さがコピー先文字列より短い時
-    if( total >= str.len+1 ){
-        len   = str.len;
-        if( str.String ){
-            memcpy( String, str.String, str.len+1 );
-        }else{
-            *String = 0;
-        }
-    //コピー元文字列の長さがコピー先文字列より長い時
-    }else{
-        //コピー元が存在するとき
-        if( str.String ){
-            char* tmp = myrealloc(String,len, str.len+1,0);
-            len   = str.len;
-            total = len+1;
-            assert( tmp != NULL );
-            String = tmp;
-            memcpy(String, str.String, str.len+1 );
-        //存在しない時
-        }else{
-            //自分も領域を持つならば消す
-            if( len ){
-                *String = 0;
-            }
-            len = 0;
-        }
-    }
+    myrealloc(str.total);
+    memcpy( String, str.String,str.total );
+    len = str.len;
     return;
 }
 //---------------------------------------------------------------------------
 void wString::operator=(const char* str)
 {
-    //コピー元文字列の長さがコピー先文字列より短い時
-    unsigned int num = str?strlen(str):0;
-    if( total > num ){
-        len   = num;
-        memcpy( String, str, num );
-        String[num] = 0;
-    //コピー元文字列の長さがコピー先文字列より長い時
-    }else{
-        if( num ){
-            char* tmp = myrealloc( String, len, num+1, 0);
-            len   = num;
-            total = len+1;
-            assert( tmp != NULL );
-            memcpy( tmp, str, num );
-            String = tmp;
-            String[len] = 0;
-        }else{
-            //自分も領域を持つならば消す
-            if( len ){
-                *String = 0;
-            }
-            len = 0;
-        }
-    }
+    int newLen = strlen(str);
+    myrealloc(newLen+1);
+    strcpy( String, str);
+    len = newLen;
     return;
 }
 //---------------------------------------------------------------------------
@@ -445,21 +293,7 @@ char wString::at(unsigned int index) const
 //---------------------------------------------------------------------------
 void wString::SetLength(unsigned int num)
 {
-    //文字列領域の余裕がある、又は共にサイズ０
-    if( total > num ){
-        len   = num;
-        String[len] = 0;
-    //領域を拡大する場合
-    }else{
-        //len   = num;
-        total = num+1;
-        char* tmp = myrealloc( String, len, total );
-        //debug_log_output("String=[%p]\n", String );
-        //致命的エラー
-        assert( tmp != NULL );
-        String = tmp;
-        //String[len] = 0;
-    }
+    myrealloc(num);
     return;
 }
 //---------------------------------------------------------------------------
@@ -492,15 +326,14 @@ void  wString::clear(void)
 //---------------------------------------------------------------------------
 wString&  wString::SubString(int start, int mylen)
 {
-    if( mylen == 0 ){
-        return *NextSac();
-    }
     wString* temp = NextSac();
-    temp->SetLength( mylen+1 );
-    memcpy( temp->String, String+start,mylen);
-    temp->String[mylen] = 0;
-    //長さ不定。数えなおす
-    temp->len = strlen(temp->String);
+    if( mylen>0){
+        temp->SetLength( mylen+1 );
+        memcpy( temp->String, String+start,mylen);
+        temp->String[mylen] = 0;
+        //長さ不定。数えなおす
+        temp->len = mylen;//strlen(temp->String);
+    }
     return *temp;
 }
 //---------------------------------------------------------------------------
@@ -703,17 +536,12 @@ wString& wString::LTrim(void)
 wString& wString::substr(int index) const
 {
     wString* temp = NextSac();
-    unsigned int newLen = len-index;
-//    printf("newLen:len:%d index:%d newLen:%d", len, index, newLen );
-    if( newLen>0 ){
-        if( temp->total <= newLen ){
-            temp->String = myrealloc(temp->String,temp->len, newLen,0);
-            temp->total = newLen+1;
-        }
+    int newLen = len-index;
+    if( newLen > 0 ){
+        temp->myrealloc(newLen+1);
+        memcpy(temp->String, String+index,newLen);
+        temp->String[newLen] =0;
         temp->len = newLen;
-        memcpy(temp->String,String+index,newLen);
-        temp->String[newLen] = 0;     
-    }else{
     }
     return *temp;
 }
@@ -723,21 +551,15 @@ wString& wString::substr(int index) const
 wString& wString::substr(int index, int length) const
 {
     wString* temp = NextSac();
-    unsigned int newLen = length;
-
-    if( newLen > len-index ){
+    int newLen = length;
+    if( newLen > (int)len-index ){
         newLen = len-index;
     }
-//    printf("newLen:len:%d index:%d newLen:%d", len, index, newLen );
-    if( newLen>0 ){
-        if( temp->total <= newLen ){
-            temp->String = myrealloc(temp->String,temp->len, newLen,0);
-            temp->total = newLen+1;
-        }
+    if( newLen>0){
+        temp->myrealloc(newLen+1);
         memcpy(temp->String,String+index,newLen);
-        temp->String[newLen] = 0;
+        temp->String[newLen]=0;
         temp->len = newLen;
-    }else{
     }
     return *temp;
 }
@@ -893,6 +715,7 @@ wString& wString::ExtractFileExt(wString& str)
 {
     int pos = str.LastDelimiter(".");
     wString* tmp=NextSac();
+    //copy(tmp,str.SubString(0,pos+1));
     copy(tmp,str.SubString(pos+1,str.length()-pos-1));
     return *tmp;
 }
@@ -978,29 +801,32 @@ void wString::replace_character_len(const char *sentence,
 // 戻値　ファイルリスト。ほっておいていいが、コピーしてほしい
 wString& wString::EnumFolder(wString& Path)
 {
-    DIR *dir;
-    struct dirent *ent;
+    struct dirent **namelist;
+    int n;
     wString* ret;
     wString temp;
     wString Path2;
     Path2 = Path;
     int first=1;
-    //Directoryオープン
-    if ((dir = opendir(Path.String)) != NULL){
-        //ファイルリスト
+
+    n = scandir(Path.String, &namelist, NULL , alphasort);
+    if (n < 0){
+        temp = "";
+    }
+    else
+    {
         temp = "[";
-        while ((ent = readdir(dir)) != NULL){
-		if( first ){
-			first = 0;
-		}else{
-			temp += ",";
-		}
-                temp += "\""+Path2+DELIMITER+ent->d_name+"\"" ;
+        for( int i = 0 ; i < n ; i++){
+            if( first ){
+                first = 0;
+            }else{
+                temp += ",";
+            }
+            temp += "\""+Path2+DELIMITER+namelist[i]->d_name+"\"" ;
+            free(namelist[i]);
         }
         temp += "]";
-        closedir(dir);
-    }else{
-        temp = "";
+        free(namelist);
     }
     ret = NextSac();
     *ret = temp;
@@ -1066,21 +892,22 @@ wString& wString::strsplit(const char* delimstr)
 //---------------------------------------------------------------------------
 //
 //---------------------------------------------------------------------------
-inline char* wString::myrealloc(char* ptr, size_t oldsize, size_t size,int dispose)
+void wString::myrealloc(int newsize)
 {
-    char* tmp = new char[size+1];
-    assert( size != 0 );
-            //printf("assert\n");
-    assert( tmp != NULL );
-    if( ptr ){
-        if( ! dispose ){
-            memcpy( tmp, ptr, oldsize+1 );
-        }
-        delete [] ptr;
-    }else{
-        *tmp = 0;
+    if( len>=total){
+       printf( "not good %d %d",len,total );
+       exit( 1);
     }
-    return tmp;
+    if( (int)total<newsize){
+        total = newsize;
+        char* tmp = new char[total];
+        memcpy(tmp,String,len);
+        tmp[len]=0;
+        delete[] String;
+        String = tmp;
+    }else{
+        //指定サイズが元より小さいので何もしない
+    }
 }
 char* wString::htmlspecialchars(void)
 {
@@ -1125,13 +952,11 @@ char* wString::uri_encode(void)
     unsigned int is;
     wString dst;
     char work[8];
-    int cnt;
     // 引数チェック
     if(len == 0 ){
         //０バイト
         return (char*)"";
     }
-    cnt = 0;
     for ( is = 0 ; is < len ; is++){
         /* ' '(space) はちと特別扱いにしないとまずい */
         if ( String[is] == ' ' ){
@@ -1220,14 +1045,12 @@ inline int htoc(unsigned char x)
 char* wString::uri_decode(int flag)
 {
     size_t          i;
-    int             cnt;
     unsigned char   code;
     // 引数チェック
     if (len==0){
         return String;
     }
     wString dst;
-    cnt = 0;
     // =================
     // メインループ
     // =================
@@ -1242,6 +1065,8 @@ char* wString::uri_decode(int flag)
                 dst += '\\';
             }
             dst += code;
+        }else if ( String[i] == '+' ){
+            dst += ' ';
         }else{
             if( flag && String[i] == '\"' ){
                 dst += '\\';
@@ -1283,12 +1108,12 @@ void wString::headerInit(size_t content_length, int expire, const char* mime_typ
         this->cat_sprintf( HTTP_CONTENT_LENGTH, content_length );
     }
 }
-void wString::headerPrint(int endflag)
+void wString::headerPrint(int socket,int endflag)
 {
     //printf( "%s", String );
-    write( STDOUT_FILENO, String, len );
+    write( socket, String, len );
     if( endflag ){
-        write( STDOUT_FILENO, HTTP_END, strlen( HTTP_END));
+        write( socket, HTTP_END, strlen( HTTP_END));
         //printf( "%s", HTTP_END );
     }
     //debug_log_output( "%s", String );
@@ -1364,7 +1189,7 @@ void wString::Add(wString& str)
 }
 int wString::GetListLength(void)
 {
-    count = 0;
+    int count = 0;
     char* ptr = String;
     while( *ptr ){
         if( *ptr == '\r' ){
@@ -1520,6 +1345,9 @@ int  wString::mp3_id3v1_tag_read(unsigned char *mp3_filename )
     }
     // 最後から128byteへSEEK
     length = lseek(fd, -128, SEEK_END);
+    if( length < 0 ){
+        return -1;
+    }
     // ------------------
     // "TAG"文字列確認
     // ------------------

@@ -26,7 +26,11 @@
 #include <sys/epoll.h>  
 #include <error.h>
 #include <cerrno>
-
+#ifdef use_thread
+#include <pthread.h>
+#else
+int                 epfd;                           // EPOLL FileDescriptor
+#endif
 #include "wizd.h"
 int volatile child_count = 0;
 #define MAX_CHILD_COUNT (global_param.max_child_count)
@@ -34,8 +38,7 @@ typedef struct {
     SOCKET                  accept_socket;      // SOCKET
     struct  sockaddr_in     caddr;
 } ACCESS_INFO;
-void server_listen_main(ACCESS_INFO* ac_in);
-int                 epfd;                           // EPOLL FileDescriptor
+void* server_listen_main(void* arg);
 /////////////////////////////////////////////////////////////////////////
 // HTTPサーバ 待ち受け動作部
 /////////////////////////////////////////////////////////////////////////
@@ -48,11 +51,13 @@ void	server_listen()
     struct sockaddr_in  caddr;				// クライアントソケットアドレス構造体
     socklen_t   	caddr_len = sizeof(caddr);	// クライアントソケットアドレス構造体のサイズ
     int			sock_opt_val;
+#ifndef use_thread
     struct epoll_event  events[MAX_EVENTS];             // EPOLL EVENTS
     int                 nfds;         			// EPOLL用 
+    int                 n;
+#endif
     //struct timeval t_val;         			// 待ちタイマー値
-    int n;   
-    ACCESS_INFO     ac_in;
+    ACCESS_INFO*     ac_in;
     // =============================
     // listenソケット生成
     // =============================
@@ -92,10 +97,40 @@ void	server_listen()
         perror("listen");
         return;
     }
+#ifdef use_thread
+    // =====================
+    // BLOCKING MODE設定
+    // =====================
+    debug_log_output("THREAD MODE START");
+    set_nonblocking_mode(listen_socket,0);//BLOCKING_MODE
+    // =====================
+    // メインループ
+    // =====================
+    pthread_t thread;
+    while( 1 )
+    {
+        accept_socket = accept(listen_socket, (struct sockaddr *)&caddr, &caddr_len);
+        if ( accept_socket < 0 ) // accept失敗チェック
+        { 
+            debug_log_output("accept() error. ret=%d\n", accept_socket);
+            continue;           // 最初に戻る。
+        }
+        //set_nonblocking_mode(accept_socket,0);//BLOCKING_MODE
+        ac_in = new ACCESS_INFO;
+        ac_in->accept_socket = accept_socket;
+        ac_in->caddr = caddr;
+        debug_log_output( "thread created from %s sock %d port %d",inet_ntoa(caddr.sin_addr),accept_socket,ntohs(caddr.sin_port));
+        if( pthread_create(&thread, NULL , server_listen_main , ac_in) < 0 ){
+            debug_log_output( "thread create failed");
+        }
+        //部分的に待つ
+        pthread_join(thread,NULL);
+    }
+#else
     // =====================
     // NON BLOCKING MODE設定
     // =====================
-    set_blocking_mode(listen_socket,1);//NON_BLOCKING_MODE
+    set_nonblocking_mode(listen_socket,1);//NON_BLOCKING_MODE
     // =====================
     // メインループ
     // =====================
@@ -128,7 +163,7 @@ void	server_listen()
                     debug_log_output("accept() error. ret=%d\n", accept_socket);
                     continue;           // 最初に戻る。
                 }
-                set_blocking_mode(accept_socket,1);//NON_BLOCKING_MODE
+                set_nonblocking_mode(accept_socket,1);//NON_BLOCKING_MODE
                 //xxエッジトリガー->レベルトリガ
                 add_epoll(accept_socket, EPOLLIN );
             } else {
@@ -139,9 +174,10 @@ void	server_listen()
                     // 2004/08/27 Add end
                     debug_log_output("do server process %d", events[n].data.fd );
                     del_epoll(events[n].data.fd); 
-                    ac_in.accept_socket = (unsigned int)events[n].data.fd;
-                    ac_in.caddr = caddr;
-                    server_listen_main(&ac_in);
+                    ac_in = new ACCESS_INFO;
+                    ac_in->accept_socket = (unsigned int)events[n].data.fd;
+                    ac_in->caddr = caddr;
+                    server_listen_main(ac_in);
                 }
             }
         }
@@ -149,9 +185,11 @@ void	server_listen()
         queue_do_copy();
         }
     }
+#endif
     close( listen_socket );
     return;
 }
+#ifndef use_thread
 /////////////////////////////////////////////////////////////////////////
 // トリガー追加
 /////////////////////////////////////////////////////////////////////////
@@ -186,11 +224,17 @@ int del_epoll( int socket )
     }
     return 0;
 }
+#endif
 /////////////////////////////////////////////////////////////////////////
 // 複数アクセス対応
 /////////////////////////////////////////////////////////////////////////
-void server_listen_main(ACCESS_INFO* ac_in)
+void* server_listen_main(void* arg)
 {
+    ACCESS_INFO* ac_in = (ACCESS_INFO*)arg;
+    SOCKET accept_socket = (unsigned int)ac_in->accept_socket;
+#ifdef use_thread
+    pthread_detach(pthread_self());
+#endif
     int                 access_check_ok;
     int                 i;
     unsigned char       client_addr_str[32];
@@ -198,8 +242,6 @@ void server_listen_main(ACCESS_INFO* ac_in)
     unsigned char       masked_client_address[4];
     unsigned char       work1[32];
     unsigned char       work2[32];
-    //ACCESS_INFO* ac_in = (ACCESS_INFO*)arg;
-    SOCKET accept_socket = (unsigned int)ac_in->accept_socket;
     struct sockaddr_in    caddr = ac_in->caddr;         // クライアントソケットアドレス構造体
     debug_log_output("\n\n=============================================================\n");
     debug_log_output("Socket Accept!!(accept_socket=%d)\n", accept_socket);
@@ -260,6 +302,7 @@ void server_listen_main(ACCESS_INFO* ac_in)
             }
         }
     }
+    delete ac_in;
     if ( access_check_ok == FALSE ){
         debug_log_output("Access Denied.\n");
         close(accept_socket);     // Socketクローズ
@@ -270,5 +313,5 @@ void server_listen_main(ACCESS_INFO* ac_in)
         debug_log_output("HTTP process end.\n");
         debug_log_output("=============================================================\n");
     }
-    return;
+    return NULL;
 }

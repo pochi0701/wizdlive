@@ -32,6 +32,7 @@
 // If defined, this keeps a note of all calls and where from in memory. This is slower, but good for debugging
 #define TINYJS_CALL_STACK
 
+#define MAXASSET 100
 #include <vector>
 #include "wizd_String.h"
 #ifndef TRACE
@@ -130,38 +131,41 @@ public:
 class CScriptLex
 {
 public:
-    CScriptLex(const wString &input);
-    CScriptLex(CScriptLex *owner, int startChar, int endChar);
+    CScriptLex(int mysocket, int* myprinted, wString* myheaderBuf, const wString &input);
+    CScriptLex(int mysocket, int* myprinted, wString* myheaderBuf, CScriptLex *owner, int startChar, int endChar);
     ~CScriptLex(void);
 
     char currCh, nextCh;
-    int tk; ///< The type of the token that we have
-    int tokenStart; ///< Position in the data at the beginning of the token we have here
-    int tokenEnd; ///< Position in the data at the last character of the token we have here
-    int tokenLastEnd; ///< Position in the data at the last character of the last token
-    wString tkStr; ///< Data contained in the token we have here
+    int tk;                                  ///< The type of the token that we have
+    int tokenStart;                          ///< Position in the data at the beginning of the token we have here
+    int tokenEnd;                            ///< Position in the data at the last character of the token we have here
+    int tokenLastEnd;                        ///< Position in the data at the last character of the last token
+    wString tkStr;                           ///< Data contained in the token we have here
 
-    void match(int expected_tk); ///< Lexical match wotsit
-    static wString getTokenStr(int token); ///< Get the string representation of the given token
-    void reset(); ///< Reset this lex so we can start again
+    void match(int expected_tk);             ///< Lexical match wotsit
+    static wString getTokenStr(int token);   ///< Get the string representation of the given token
+    void reset();                            ///< Reset this lex so we can start again
 
-    wString getSubString(int pos); ///< Return a sub-string from the given position up until right now
+    wString getSubString(int pos);           ///< Return a sub-string from the given position up until right now
     CScriptLex *getSubLex(int lastPosition); ///< Return a sub-lexer from the given position up until right now
 
-    wString getPosition(int pos=-1); ///< Return a string representing the position in lines and columns of the character pos given
+    wString getPosition(int pos=-1);         ///< Return a string representing the position in lines and columns of the character pos given
 
 protected:
     /* When we go into a loop, we use getSubLex to get a lexer for just the sub-part of the
        relevant string. This doesn't re-allocate and copy the string, but instead copies
        the data pointer and sets dataOwned to false, and dataStart/dataEnd to the relevant things. */
-    char *data; ///< Data wString to get tokens from
-    int dataStart, dataEnd; ///< Start and end position in data string
-    bool dataOwned; ///< Do we own this data string?
+    char *data;                              ///< Data wString to get tokens from
+    int dataStart, dataEnd;                  ///< Start and end position in data string
+    bool dataOwned;                          ///< Do we own this data string?
 
-    int dataPos; ///< Position in data (we CAN go past the end of the wString here)
+    int dataPos;                             ///< Position in data (we CAN go past the end of the wString here)
 
     void getNextCh();
-    void getNextToken(); ///< Get the text token from our text string
+    void getNextToken();                     ///< Get the text token from our text string
+    wString *headerBuf;
+    int* printed;
+    int socket;
 };
 
 class CScriptVar;
@@ -275,7 +279,7 @@ protected:
 
 class CTinyJS {
 public:
-    CTinyJS();
+    CTinyJS(int mysocket);
     ~CTinyJS();
 
     void execute(const wString &code);
@@ -316,6 +320,9 @@ public:
     void trace();
 
     CScriptVar *root;   /// root of symbol table
+    int socket;
+    int printed;
+    wString *headerBuf;
 private:
     CScriptLex *l;             /// current lexer
     std::vector<CScriptVar*> scopes; /// stack of scopes when parsing
@@ -348,5 +355,4 @@ private:
     /// Look up in any parent classes of the given object
     CScriptVarLink *findInParentClasses(CScriptVar *object, const wString &name);
 };
-
 #endif

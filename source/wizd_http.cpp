@@ -26,11 +26,11 @@
 #include <cerrno>
 #include "wizd.h"
 typedef enum {_OPENDIR = -2,_NOTFOUND = -1,_FILE = 0, _DIR = 1, _PLW = 3, _TSV = 4, _VOB = 5, _CGI=6} FILETYPES;
-static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info);
-static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p);
-static FILETYPES http_index( HTTP_RECV_INFO * http_recv_infp_p );
-static int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location);
-static int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info);
+int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info);
+FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p);
+FILETYPES http_index( HTTP_RECV_INFO * http_recv_infp_p );
+int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location);
+int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info);
 int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max);
 // **************************************************************************
 // * サーバ HTTP処理部
@@ -50,12 +50,11 @@ void 	server_http_process(int accept_socket)
     ret = http_header_receive(accept_socket,  &http_recv_info);
     if ( ret != 0 ){ // エラーチェック
         // エラーメッセージ
-        debug_log_output("http_header_receive() Error. result=%d\n", ret);
+        debug_log_output("http_header_receive() Error. result=%d socket=%d", ret,accept_socket);
         // ソケットクローズ
         close(accept_socket);
         return;
     }
-    debug_log_output("HTTP Header receive end!\n");
     debug_log_output("recv_uri:'%s'\n", http_recv_info.recv_uri);
     debug_log_output("user_agent:'%s'\n", http_recv_info.user_agent);
     debug_log_output("range_start_pos=%d\n", http_recv_info.range_start_pos);
@@ -227,8 +226,6 @@ void 	server_http_process(int accept_socket)
         //close(accept_socket);
         }
     }
-    // ソケットクローズ
-    //close(accept_socket);
     return;
 }
 /////////////////////////////////////////////////////////////////////////////////
@@ -301,7 +298,7 @@ FILETYPES http_index( HTTP_RECV_INFO* http_recv_info_p )
 //	return: 0 		正常終了
 //	return: 0以外 	エラー
 // **************************************************************************
-static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
+int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 {
     int result = 0;
     int	recv_len;
@@ -319,15 +316,14 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
         // 1行受信 実行。
         memset(line_buf, '\0', sizeof(line_buf));
         recv_len = line_receive(accept_socket, line_buf, sizeof(line_buf));
-        // debug. 受信したヘッダ表示
-        debug_log_output("'%s'(%d byte)\n", line_buf, recv_len );
         // 受信した内容をチェック。
         if ( recv_len == 0 ){ // 空行検知。ヘッダ受信終了。
             break;
         }else if ( recv_len < 0 ){ // 受信失敗
-            debug_log_output("header read error error=%s\n", strerror(errno));
             return ( -1 );
         }
+        // debug. 受信したヘッダ表示
+        debug_log_output("'%s'(%d byte)\n", line_buf, recv_len );
         // --------------------------
         // GETメッセージチェック
         // --------------------------
@@ -361,7 +357,6 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
                 strncpy(work_buf, line_buf, sizeof(work_buf));
                 // '?'より前をカット
                 cut_before_character(work_buf, '?' );
-                debug_log_output("work_buf = '%s'", work_buf );
                 while ( 1 ){
                     memset(split1, '\0', sizeof(split1));
                     memset(split2, '\0', sizeof(split2));
@@ -512,7 +507,7 @@ static int http_header_receive(int accept_socket, HTTP_RECV_INFO *http_recv_info
 //			 5:VOBファイル
 //			 6:CGIファイル
 // **************************************************************************
-static FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p)
+FILETYPES http_file_check( HTTP_RECV_INFO *http_recv_info_p)
 {
     struct stat send_filestat={0};
     int result;
@@ -644,6 +639,7 @@ int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max)
     while ( 1 ){
         recv_len = read(accept_socket, &byte_buf, 1);
         if ( recv_len != 1 ){ // 受信失敗チェック
+            debug_log_output("header read error cnt = %d error=%s\n", recv_len, strerror(errno));
             //debug_log_output("line_receive: read_len == -1");
             return ( -1 );
         }
@@ -657,7 +653,6 @@ int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max)
         *line_buf_work_p = byte_buf;
         line_buf_work_p++;
         line_len++;
-        // printf("line_len=%d, buf='%s'\n", line_len, line_buf_p);
         // 受信バッファサイズチェック
         if ( line_len >= line_max){
             // バッファオーバーフロー検知
@@ -667,7 +662,7 @@ int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max)
     }
     return line_len;
 }
-static int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location)
+int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_info, char *location)
 {
     char buffer[FILENAME_MAX];
     snprintf(buffer, sizeof(buffer),
@@ -679,7 +674,7 @@ static int http_redirect_response(int accept_socket, HTTP_RECV_INFO *http_recv_i
     debug_log_output("Redirect to %s",location);
     return 0;
 }
-static int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info)
+int http_not_found_response(int accept_socket, HTTP_RECV_INFO *http_recv_info)
 {
     char buffer[1024];
     sprintf(buffer,  "HTTP/1.x 404 Not Found\r\n"

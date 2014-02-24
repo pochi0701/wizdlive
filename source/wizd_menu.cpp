@@ -25,7 +25,6 @@
 #include <time.h>
 #include "wizd.h"
 #include "wizd_aviread.h"
-#include "castpatch.h"
 #define SORT_FILE_MASK   ( 0x000000FF )
 #define SORT_DIR_MASK   ( 0x00000F00 )
 #define SORT_DIR_FLAG(_A_)  ( ( _A_ & SORT_DIR_MASK ) >> 8 )
@@ -527,6 +526,9 @@ static void  mp3_id3v1_tag_read(unsigned char *mp3_filename, SKIN_REPLASE_LINE_D
     }
     // 最後から128byteへSEEK
     length = lseek(fd, -128, SEEK_END);
+    if( length < 0 ){
+        return;
+    }
     // ------------------
     // "TAG"文字列確認
     // ------------------
@@ -816,7 +818,7 @@ static void playlist_filename_adjustment(unsigned char *src_name, unsigned char 
         sjis_code_thrust_replace(dist_name, '|');
         debug_log_output("dist_name(SJIS '|' replace)='%s'\n", dist_name);
     }
-    replace_character(dist_name, dist_size, "|", "!");
+    replace_character(dist_name, "|", "!");
     return;
 }
 static void http_sclist_send(int accept_socket, unsigned char *filemenu_data)

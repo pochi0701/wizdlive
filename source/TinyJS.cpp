@@ -103,6 +103,7 @@
                    Fixed postfix increment operator
    Version 0.32 :  Fixed Math.randInt on 32 bit PCs, where it was broken
    Version 0.33 :  Fixed Memory leak + brokenness on === comparison
+   Version 0.34 :  Modify for cgi.
 
     NOTE:
           Constructing an array with an initial length 'Array(5)' doesn't work
@@ -237,19 +238,25 @@ CScriptException::CScriptException(const wString &exceptionText) {
 
 // ----------------------------------------------------------------------------------- CSCRIPTLEX
 // スクリプト語彙クラス
-CScriptLex::CScriptLex(const wString &input) {
+CScriptLex::CScriptLex(int mysocket, int* myprinted, wString* myheaderBuf, const wString &input) {
     data = _strdup(input.c_str());//なぜコピーする？
     dataOwned = true;
     dataStart = 0;
     dataEnd = strlen(data);
+    socket = mysocket;
+    printed = myprinted;
+    headerBuf = myheaderBuf;
     reset();
 }
 
-CScriptLex::CScriptLex(CScriptLex *owner, int startChar, int endChar) {
+CScriptLex::CScriptLex(int mysocket, int* myprinted, wString* myheaderBuf,CScriptLex *owner, int startChar, int endChar) {
     data = owner->data;
     dataOwned = false;
     dataStart = startChar;
     dataEnd = endChar;
+    socket = mysocket;
+    printed = myprinted;
+    headerBuf = myheaderBuf;
     reset();
 }
 
@@ -280,16 +287,15 @@ void CScriptLex::match(int expected_tk) {
     }
     getNextToken();
 }
-wString headerbuf;
-int  flags=0;
-void headerCheck(int flag)
+//グローバルで申し訳ないが最初に文字を出力する際にheaderを先に出す
+void headerCheck(int socket, int* printed, wString* headerBuf, int flag)
 {
-    if( headerbuf.length() == 0 ){
-         headerbuf.headerInit(0,0);
+    if( headerBuf->length() == 0 ){
+         headerBuf->headerInit(0,0);
     }
-    if( flag && flags == 0 && headerbuf.length() > 0 ){
-         flags = 1;
-         headerbuf.headerPrint();
+    if( flag && *printed == 0 ){
+         *printed = 1;
+         headerBuf->headerPrint(socket,1);
     }
 }
 //エラー用等にトークンを語彙に変換
@@ -389,8 +395,8 @@ void CScriptLex::getNextToken() {
         getNextCh();
         getNextCh();
         while (currCh && (currCh!='<' || nextCh!='?')){
-           headerCheck(1);
-           write( STDOUT_FILENO, &currCh,1); 
+           headerCheck(socket, printed, headerBuf, 1);
+           write( socket, &currCh,1); 
            //printf("%c",currCh);
            getNextCh();
         }
@@ -466,6 +472,8 @@ void CScriptLex::getNextToken() {
                 getNextCh();
                 switch (currCh) {
                 case 'n' : tkStr += '\n'; break;
+                case 'r' : tkStr += '\r'; break;
+                case 't' : tkStr += '\t'; break;
                 case '"' : tkStr += '"'; break;
                 case '\\' : tkStr += '\\'; break;
                 default: tkStr += currCh;
@@ -607,9 +615,9 @@ wString CScriptLex::getSubString(int lastPosition) {
 CScriptLex *CScriptLex::getSubLex(int lastPosition) {
     int lastCharIdx = tokenLastEnd+1;
     if (lastCharIdx < dataEnd)
-        return new CScriptLex(this, lastPosition, lastCharIdx);
+        return new CScriptLex(socket,printed,headerBuf,this, lastPosition, lastCharIdx);
     else
-        return new CScriptLex(this, lastPosition, dataEnd );
+        return new CScriptLex(socket,printed,headerBuf,this, lastPosition, dataEnd );
 }
 //指定位置を行数、列数に変換
 wString CScriptLex::getPosition(int pos) {
@@ -1246,7 +1254,7 @@ int CScriptVar::getRefs() {
 
 // ----------------------------------------------------------------------------------- CSCRIPT
 
-CTinyJS::CTinyJS() {
+CTinyJS::CTinyJS(int mysocket) {
     l = 0;
     root = (new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT))->ref();
     // Add built-in classes
@@ -1256,6 +1264,9 @@ CTinyJS::CTinyJS() {
     root->addChild("String", stringClass);
     root->addChild("Array", arrayClass);
     root->addChild("Object", objectClass);
+    socket = mysocket;
+    printed = 0;
+    headerBuf = new wString();
     //wString::wStringInit();
 }
 
@@ -1266,6 +1277,7 @@ CTinyJS::~CTinyJS() {
     arrayClass->unref();
     objectClass->unref();
     root->unref();
+    delete headerBuf;
     //wString::wStringEnd();
 }
 
@@ -1276,7 +1288,7 @@ void CTinyJS::trace() {
 void CTinyJS::execute(const wString &code) {
     CScriptLex *oldLex = l;
     vector<CScriptVar*> oldScopes = scopes;
-    l = new CScriptLex(code);
+    l = new CScriptLex(socket,&printed, headerBuf, code);
 #ifdef TINYJS_CALL_STACK
     call_stack.clear();
 #endif
@@ -1313,7 +1325,7 @@ CScriptVarLink CTinyJS::evaluateComplex(const wString &code) {
     CScriptLex *oldLex = l;
     vector<CScriptVar*> oldScopes = scopes;
 
-    l = new CScriptLex(code);
+    l = new CScriptLex(socket, &printed, headerBuf, code);
 #ifdef TINYJS_CALL_STACK
     call_stack.clear();
 #endif
@@ -1374,7 +1386,7 @@ void CTinyJS::parseFunctionArguments(CScriptVar *funcVar) {
 
 void CTinyJS::addNative(const wString &funcDesc, JSCallback ptr, void *userdata) {
     CScriptLex *oldLex = l;
-    l = new CScriptLex(funcDesc);
+    l = new CScriptLex(socket, &printed, headerBuf, funcDesc);
 
     CScriptVar *base = root;
 
@@ -1472,7 +1484,7 @@ CScriptVarLink *CTinyJS::functionCall(bool &execute, CScriptVarLink *function, C
          * we want to be careful here... */
         CScriptException *exception = 0;
         CScriptLex *oldLex = l;
-        CScriptLex *newLex = new CScriptLex(function->var->getString());
+        CScriptLex *newLex = new CScriptLex(socket, &printed, headerBuf, function->var->getString());
         l = newLex;
         try {
           block(execute);

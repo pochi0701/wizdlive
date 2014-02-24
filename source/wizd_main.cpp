@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     // 各種初期化
     // =============================================
     global_param_init();
-    wString::wStringInit();
+    //wString::wStringInit();
     // =============================================
     // オプションチェック
     // =============================================
@@ -115,27 +115,29 @@ int main(int argc, char *argv[])
     // Server自動検出を使うばあい、
     // Server Detect部をForkして実行
     // ==================================
-    //if ( global_param.flag_auto_detect == TRUE )
-    //{
-        //    pid = fork();
-        //    if ( pid < 0 ) // fork失敗チェック
-        //    {
-            //        perror("fork");
-            //        exit( 1 );
-        //    }
-        //    if (pid == 0)
-        //    {
-            //        // 以下子プロセス部
-            //        server_detect();
-            //        exit ( 0 );
-        //    }
-    //}
+    if ( global_param.flag_auto_detect == TRUE )
+    {
+        int pid = fork();
+        if ( pid < 0 ) // fork失敗チェック
+        {
+            perror("fork");
+            exit( 1 );
+        }
+        if (pid == 0)
+        {
+            // 以下子プロセス部
+            server_detect();
+            exit ( 0 );
+        }
+    }
     // =======================
     // HTTP Server仕事開始
     // =======================
+    wString::wStringInit();
     server_listen();
     printf("%s  end.\n", SERVER_NAME);
-    exit( 0 );
+    wString::wStringEnd();
+    return 0;
 }
 // **************************************************************************
 // Helpメッセージ出力

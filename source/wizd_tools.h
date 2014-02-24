@@ -35,7 +35,7 @@ extern void 	cut_before_last_character(unsigned char *sentence, unsigned char cu
 extern void 	cut_after_last_character(unsigned char *sentence, unsigned char cut_char);
 extern int 		sentence_split(unsigned char *sentence, unsigned char cut_char, unsigned char *split1, unsigned char *split2);
 extern void 	duplex_character_to_unique(unsigned char *sentence, unsigned char unique_char);
-extern void     replace_character(unsigned char *sentence, const unsigned char *key, const unsigned char *rep);
+extern void     replace_character(unsigned char *sentence, const char *key, const char *rep);
 extern void     replace_character_first(unsigned char *sentence, const unsigned char *key, const unsigned char *rep);
 extern void 	make_datetime_string(unsigned char *sentence);
 extern void 	conv_time_to_string(unsigned char *sentence, time_t conv_time);
@@ -79,5 +79,5 @@ extern SOCKET sock_connect(char *host, int port);
 extern void   sock_close(SOCKET sock);
 extern char* ExtractFileExtension( unsigned char* filename );
 //extern char* uri_encode(char* src);
-extern void set_blocking_mode(int fd, int flag);
+extern void set_nonblocking_mode(int fd, int flag);
 #endif

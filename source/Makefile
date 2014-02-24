@@ -12,14 +12,8 @@ AR=$(CROSS)ar
 STRIP=$(CROSS)strip
 LD=$(CROSS)ld
 RANLIB=$(CROSS)ranlib
-#CFLAGS=-O3 -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Dlinux -D_DEBUG -I./
-CFLAGS= -g -Wall -Dlinux -D_DEBUG
-#CFLAGS= -pg -Wall -Dlinux -D_DEBUG
-#CFLAGS= -O3 -Wall -Dlinux
-#CFLAGS+=-mips2
-#LDFLAGS=-L/usr/local/mipsel-linux-uclibc/lib -L/usr/local/mipsel-linux-uclibc/mipsel-linux-uclibc/lib
-#LIBS=-lpthread -lgcc
-#LIBS=-lpthread 
+CFLAGS= -g -Wall -Dlinux -D_DEBUG -Duse_thread -pthread
+#CFLAGS= -g -Wall -Dlinux -D_DEBUG
 
 all:	wizdlive
 
