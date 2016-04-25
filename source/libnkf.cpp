@@ -113,6 +113,9 @@
 #else
 #define PROTO(x) ()
 #endif
+#ifndef IGNNRE_PARAMETER
+#define IGNORE_PARAMETER(n) ((void)n)
+#endif
 struct input_code {
     const char *name;
     int stat;
@@ -688,6 +691,7 @@ int std_getc(char *f)
 }
 int std_ungetc(int c,char *f)
 {
+    IGNORE_PARAMETER(c);
     if (len_in < 1 || offlag != 0)
     return (EOF);
     return (unsigned char)(*(f + len_in--));
@@ -1053,7 +1057,7 @@ push_hold_buf(int c2)
 {
     if (hold_count >= HOLD_SIZE*2)
     return (EOF);
-    hold_buf[hold_count++] = c2;
+    hold_buf[hold_count++] = (unsigned char)c2;
     return ((hold_count >= HOLD_SIZE*2) ? EOF : hold_count);
 }
 int s2e_conv(int c2, int c1, int *p2, int *p1)
@@ -1072,6 +1076,7 @@ int s2e_conv(int c2, int c1, int *p2, int *p1)
 int
 s_iconv(int c2, int c1, int c0)
 {
+    IGNORE_PARAMETER(c0);
     if (c2 == X0201) {
         c1 &= 0x7f;
     } else if ((c2 == EOF) || (c2 == 0) || c2 < SPACE) {
@@ -1085,6 +1090,7 @@ s_iconv(int c2, int c1, int c0)
 int
 e_iconv(int c2, int c1, int c0)
 {
+    IGNORE_PARAMETER(c0);
     if (c2 == X0201) {
         c1 &= 0x7f;
     } else if (c2 == SSO) {
@@ -1154,7 +1160,7 @@ w_iconv16(int c2, int c1, int c0)
         (*oconv)(c2, c1);
         return 0;
     }
-    val = ((c2 << 8) & 0xff00) + c1;
+    val = (unsigned short)(((c2 << 8) & 0xff00) + c1);
     if (c2 < 0x8) {
         c0 = (0x80 | (c1 & 0x3f));
         c1 = (0xc0 | (val >> 6));
@@ -1574,7 +1580,7 @@ mime_ungetc_buf(int c, char* f)
     if (mimebuf_f)
     (*i_mungetc_buf)(c, f);
     else
-    Fifo(--mime_input) = c;
+    Fifo(--mime_input) = (unsigned char)c;
     return c;
 }
 int
@@ -1589,7 +1595,8 @@ mime_begin(char *f)
     Fifo(mime_last++) = '='; Fifo(mime_last++) = '?';
     for(i = 2; i < MAXRECOVER; i++) { /* start at =? */
         /* We accept any character type even if it is breaked by new lines */
-        c1 = (*i_getc)(f); Fifo(mime_last++) = c1;
+        c1 = (*i_getc)(f);
+        Fifo(mime_last++) = (unsigned char)c1;
         if (c1 == '\n' || c1 == ' ' || c1 == '\r' || c1 == '-' || c1 == '_' || is_alnum(c1))
         continue;
         if (c1 == '=') {
@@ -1601,7 +1608,8 @@ mime_begin(char *f)
         if (c1 != '?') break;
         else {
             /* c1=='?' */
-            c1 = (*i_getc)(f); Fifo(mime_last++) = c1;
+            c1 = (*i_getc)(f);
+            Fifo(mime_last++) = (unsigned char)c1;
             if (!(++i < MAXRECOVER) || c1 == EOF) break;
             if (c1 == 'b' || c1 == 'B') {
                 mime_decode_mode = 'B';
@@ -1610,7 +1618,8 @@ mime_begin(char *f)
             } else {
                 break;
             }
-            c1 = (*i_getc)(f); Fifo(mime_last++) = c1;
+            c1 = (*i_getc)(f);
+            Fifo(mime_last++) = (unsigned char)c1;
             if (!(++i < MAXRECOVER) || c1 == EOF) break;
             if (c1 != '?') {
                 mime_decode_mode = FALSE;
@@ -1738,13 +1747,13 @@ mime_getc(char *f)
     t4 = 0x3f & base64decode(c4);
     cc = ((t1 << 2) & 0x0fc) | ((t2 >> 4) & 0x03);
     if (c2 != '=') {
-        Fifo(mime_last++) = cc;
+        Fifo(mime_last++) = (unsigned char)cc;
         cc = ((t2 << 4) & 0x0f0) | ((t3 >> 2) & 0x0f);
         if (c3 != '=') {
-            Fifo(mime_last++) = cc;
+            Fifo(mime_last++) = (unsigned char)cc;
             cc = ((t3 << 6) & 0x0c0) | (t4 & 0x3f);
             if (c4 != '=')
-            Fifo(mime_last++) = cc;
+            Fifo(mime_last++) = (unsigned char)cc;
         }
     } else {
         return c1;
@@ -1754,7 +1763,8 @@ mime_getc(char *f)
 int
 mime_ungetc(int c, char *f)
 {
-    Fifo(--mime_top) = c;
+    IGNORE_PARAMETER(f);
+    Fifo(--mime_top) = (unsigned char)c;
     return c;
 }
 int
@@ -1774,7 +1784,7 @@ mime_integrity(char *f, unsigned char *p)
         }
         if (c == '=' && d == '?') {
             /* checked. skip header, start decode */
-            Fifo(mime_input++) = c;
+            Fifo(mime_input++) = (unsigned char)c;
             /* mime_last_input = mime_input; */
             mime_input = q;
             switch_mime_getc();
@@ -1783,11 +1793,11 @@ mime_integrity(char *f, unsigned char *p)
         if (!((c == '+' || c == '/' || c == '=' || c == '?' || is_alnum(c))))
         break;
         /* Should we check length mod 4? */
-        Fifo(mime_input++) = c;
+        Fifo(mime_input++) = (unsigned char)c;
         d = c;
     }
     /* In case of Incomplete MIME, no MIME decode  */
-    Fifo(mime_input++) = c;
+    Fifo(mime_input++) = (unsigned char)c;
     mime_last = mime_input; /* point undecoded buffer */
     mime_decode_mode = 1; /* no decode on Fifo last in mime_getc */
     switch_mime_getc(); /* anyway we need buffered getc */
@@ -1937,6 +1947,9 @@ no_connection(int c2, int c1)
 int
 no_connection2(int c2, int c1, int c0)
 {
+    IGNORE_PARAMETER(c2);
+    IGNORE_PARAMETER(c1);
+    IGNORE_PARAMETER(c0);
     ncflag = 1;
     return (EOF);
 }

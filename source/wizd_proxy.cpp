@@ -3,56 +3,61 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <sys/types.h>
+#ifdef linux
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#else
+#include <io.h>
+#endif
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
 #include "wizd.h"
-extern unsigned char *base64(unsigned char *str);
-extern int line_receive(int accept_socket, unsigned char *line_buf_p, int line_max);
-extern void set_nonblocking_mode(int fd, int flag);
-extern int http_uri_to_scplaylist_create(int accept_socket, char *uri_string);
+#include "wizd_tools.h"
+#include "const.h"
+#define bzero(thing,sz) memset(thing,0,sz)
+extern int line_receive(int accept_socket, char *line_buf_p, int line_max);
+
+//extern int http_uri_to_scplaylist_create(int accept_socket, char *uri_string);
 #define MAX_LINE 100 /* 記憶する、HTTPヘッダの最大行数 */
-#define LINE_BUF_SIZE 2048 /* 行バッファ */
+#define LINE_BUF_SIZE 4096 /* 行バッファ */
 
 int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
 {
     const char *HTTP_RECV_CONTENT_TYPE = "Content-type: text/html";
     const char *HTTP_RECV_CONTENT_LENGTH = "Content-Length: ";
     const char *HTTP_RECV_LOCATION = "Location: ";
-    unsigned char *p_target_host_name;
-    unsigned char *p_uri_string;
-    unsigned char send_http_header_buf[2048];
-    unsigned char line_buf[MAX_LINE][LINE_BUF_SIZE + 5];
+    char *p_target_host_name;
+    char *p_uri_string;
+    char send_http_header_buf[2048];
+    char line_buf[MAX_LINE][LINE_BUF_SIZE + 5];
     char proxy_pre_string[2048];
     char base_url[2048];
     char *p_url;
-    unsigned char *p;
-    unsigned char *p_auth = NULL;
+    char *p;
+    char *p_auth = NULL;
     int port = 80;
     int sock;
-    unsigned long long content_length = 0;
+    off_t content_length = 0;
     int len = 0;
     int line = 0;
     int i;
     int content_is_html = 0;
-    int flag_pc = http_recv_info_p->flag_pc;
     p_uri_string = http_recv_info_p->request_uri;
     if (!strncmp(p_uri_string, "/-.-playlist.pls?", 17)) {
-        unsigned char buff[FILENAME_MAX];
+        char buff[FILENAME_MAX];
         if (p_uri_string[17] == '/') {
             snprintf(buff, sizeof(buff), "http://%s%s"
             , http_recv_info_p->recv_host, p_uri_string+17);
         } else {
             strncpy(buff, p_uri_string+17, sizeof(buff));
         }
-        replace_character(buff, ".pls", "");
-        return http_uri_to_scplaylist_create(accept_socket, (char*)buff);
+        replace_character((char*)buff, ".pls", "");
+        return 0;//http_uri_to_scplaylist_create(accept_socket, (char*)buff);
     }
     if (strncmp(p_uri_string, "/-.-http://", 11)) {
         return -1;
@@ -61,27 +66,27 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         return -1;
     }
     strncpy(base_url, p_uri_string, 2048);
-    p = (unsigned char*)strrchr(base_url, '/');
+    p = strrchr(base_url, '/');
     p[1] = '\0';
     p_target_host_name = p_uri_string + 11;
     p_url = strchr(p_target_host_name, '/');
     if (p_url == NULL) return -1;
     *p_url++ = '\0';
     strncpy(proxy_pre_string, p_uri_string, 2048);
-    p = (unsigned char*)strchr(p_target_host_name, '@');
+    p = strchr(p_target_host_name, '@');
     if (p != NULL) {
         // there is a user name.
         p_auth = p_target_host_name;
         p_target_host_name = p + 1;
         *p = '\0';
     }
-    p = (unsigned char*)strchr(p_target_host_name, ':');
+    p = strchr(p_target_host_name, ':');
     if (p != NULL) {
         port = atoi(p+1);
         *p = '\0';
     }
     debug_log_output("proxy:target_host_name: %s", p_target_host_name);
-    debug_log_output("proxy:authenticate: %s", p_auth ? (char*)p_auth : "NULL");
+    debug_log_output("proxy:authenticate: %s", p_auth ? p_auth : "NULL");
     debug_log_output("proxy:url: %s", p_url);
     debug_log_output("proxy:prestring: %s", proxy_pre_string);
     debug_log_output("proxy:base_url: %s", base_url);
@@ -102,21 +107,20 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             p += sprintf((char*)p, "User-agent: %s\r\n", SERVER_NAME);
         }
     }
-    p += sprintf((char*)p, "Accept: */*\r\n");
-    p += sprintf((char*)p, "Connection: close\r\n");
+    p += sprintf(p, "Accept: */*\r\n");
+    p += sprintf(p, "Connection: close\r\n");
     if (http_recv_info_p->range_start_pos) {
         p += sprintf((char*)p, "Range: bytes=");
         p += sprintf((char*)p, "%zu-", http_recv_info_p->range_start_pos);
         if (http_recv_info_p->range_end_pos) {
             p += sprintf((char*)p, "%zu", http_recv_info_p->range_end_pos);
         }
-        p += sprintf((char*)p, "\r\n");
+        p += sprintf(p, "\r\n");
     }
     if (p_auth != NULL) {
-        p += sprintf((char*)p, "Authorization: Basic %s\r\n", base64(p_auth));
+        p += sprintf((char*)p, "Authorization: Basic %s\r\n", base64((unsigned char*)p_auth));
     }
-    p += sprintf((char*)p, "\r\n");
-    debug_log_output("flag_pc: %d", flag_pc);
+    p += sprintf(p, "\r\n");
     sock = sock_connect((char*)p_target_host_name, port);
     if (sock < 0) {
         debug_log_output("error: %s", strerror(errno));
@@ -129,8 +133,10 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
     debug_log_output("================= send to proxy\n");
     debug_log_output("%s", send_http_header_buf);
     debug_log_output("=================\n");
+    
+    //TODO ここが４０４や４００の可能性あり
     for (line = 0; line < MAX_LINE; line ++) {
-        unsigned char work_buf[LINE_BUF_SIZE + 10];
+        char work_buf[LINE_BUF_SIZE + 10];
         memset(line_buf[line], 0, LINE_BUF_SIZE + 5);
         len = line_receive(sock, line_buf[line], LINE_BUF_SIZE + 1);
         if (len < 0) break;
@@ -152,9 +158,9 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             sprintf((char*)line_buf[line], "Location: /-.-%s", work_buf + strlen(HTTP_RECV_LOCATION));
         }else if ( strstr( line_buf[line],"charset") ){
             if ( strstr( line_buf[line], "EUC-JP" )){
-                replace_character( line_buf[line], "EUC-JP", "UTF-8");
+                replace_character( (char*)line_buf[line], "EUC-JP", "UTF-8");
             }else if ( strstr ( line_buf[line], "Shift_JIS" )) {
-                replace_character( line_buf[line], "Shift_JIS", "UTF-8");
+                replace_character( (char*)line_buf[line], "Shift_JIS", "UTF-8");
             }
         }
         if (len <= 2) {
@@ -168,10 +174,10 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
         return -1;
     }
     if (content_is_html) {
-        unsigned char *p, *q;
-        unsigned char *new_p, *r;
-        unsigned char work_buf[LINE_BUF_SIZE + 10];
-        unsigned char work_buf2[LINE_BUF_SIZE * 2];
+        char *p, *q;
+        char *new_p, *r;
+        char work_buf[LINE_BUF_SIZE + 10];
+        char work_buf2[LINE_BUF_SIZE * 2];
         char *link_pattern = (char*)"<A HREF=";
         int flag_conv_html_code = 1;
         for (i=0; i<line; i++) {
@@ -181,11 +187,11 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             p = work_buf;
             q = work_buf2;
             if (flag_conv_html_code) {
-               convert_language_code(line_buf[i], work_buf, LINE_BUF_SIZE, CODE_AUTO, global_param.client_language_code);
+                convert_language_code(line_buf[i], work_buf, LINE_BUF_SIZE, CODE_AUTO, global_param.client_language_code);
             }
             //strcpy( work_buf, line_buf[i]);
-//            write(accept_socket, line_buf[i], strlen(line_buf[i]));
-//            debug_log_output("sent html: '%s' len = %d", line_buf[i], strlen(line_buf[i]));
+            //            write(accept_socket, line_buf[i], strlen(line_buf[i]));
+            //            debug_log_output("sent html: '%s' len = %d", line_buf[i], strlen(line_buf[i]));
             write(accept_socket, work_buf, strlen(line_buf[i]));
             debug_log_output("sent html: '%s' len = %d", work_buf, strlen(work_buf));
         }
@@ -200,15 +206,15 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             work_buf[len++] = '\r';
             work_buf[len++] = '\n';
             work_buf[len] = '\0';
-            if (my_strcasestr((char*)work_buf, "Content-Type") != NULL) {
+            if (my_strcasestr(work_buf, "Content-Type") != NULL) {
                 // Content-Type があったら
                 // 漢字コードの変換をやめる
-            //    flag_conv_html_code = 0;
-               if ( strstr( work_buf, "EUC-JP" )){
-                   replace_character( work_buf, "EUC-JP", "UTF-8");
-               }else if ( strstr ( work_buf, "Shift_JIS" )) {
-                   replace_character( work_buf, "Shift_JIS", "UTF-8");
-               }
+                //    flag_conv_html_code = 0;
+                if ( strstr( work_buf, "EUC-JP" )){
+                    replace_character( (char*)work_buf, "EUC-JP", "UTF-8");
+                }else if ( strstr ( work_buf, "Shift_JIS" )) {
+                    replace_character( (char*)work_buf, "Shift_JIS", "UTF-8");
+                }
             }
             p = work_buf;
             q = work_buf2;
@@ -224,14 +230,14 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             *   惰性で書いたので汚い。だれか修正して。
             */
             link_pattern = (char*)"<A HREF=";
-            while ((new_p = (unsigned char*)my_strcasestr((char*)p, link_pattern)) != NULL) {
+            while ((new_p = my_strcasestr(p, link_pattern)) != NULL) {
                 int l = new_p - p + strlen(link_pattern);
                 char *tmp;
                 MIME_LIST_T *mlt = NULL;
                 strncpy(q, p, l);
                 q += l;
                 p += l; /* i.e., p = new_p + strlen(link_pattern); */
-                r = (unsigned char*)strchr(p, '>');
+                r = strchr(p, '>');
                 if (r == NULL) continue;
                 *r = '\0';
                 if (*p == '"') *q++ = *p++;
@@ -245,19 +251,19 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
                         mlt++;
                     }
                 }
-                if (flag_pc && mlt != NULL && mlt->stream_type == TYPE_STREAM) {
-                    q += sprintf((char*)q, "/-.-playlist.pls?http://%s", http_recv_info_p->recv_host);
-                }
+                //if (flag_pc && mlt != NULL && mlt->stream_type == TYPE_STREAM) {
+                //    q += sprintf((char*)q, "/-.-playlist.pls?http://%s", http_recv_info_p->recv_host);
+                //}
                 if (*p == '/') {
-                    q += sprintf((char*)q, "%s%s", proxy_pre_string, p);
+                    q += sprintf(q, "%s%s", proxy_pre_string, p);
                 } else if (!strncmp(p, "http://", 7)) {
-                    q += sprintf((char*)q, "/-.-%s", p);
+                    q += sprintf(q, "/-.-%s", p);
                 } else {
                     q += sprintf((char*)q, "%s%s", base_url, p);
                     //q += sprintf((char*)q, "%s", p);
                 }
                 if (mlt != NULL && mlt->stream_type == TYPE_STREAM) {
-                    q += sprintf((char*)q, " vod=\"0\"");
+                    q += sprintf(q, " vod=\"0\"");
                 }
                 *q++ = '>';
                 p = r + 1;
@@ -276,19 +282,19 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             q = work_buf;
             memset(q, 0, sizeof(work_buf));
             link_pattern = (char*)"SRC=";
-            while ((new_p = (unsigned char*)my_strcasestr((char*)p, link_pattern)) != NULL) {
+            while ((new_p = my_strcasestr(p, link_pattern)) != NULL) {
                 int l = new_p - p + strlen(link_pattern);
                 strncpy(q, p, l);
                 q += l;
                 p += l; /* i.e., p = new_p + strlen(link_pattern); */
                 if (*p == '"') *q++ = *p++;
                 if (*p == '/') {
-                    q += sprintf((char*)q, "%s", proxy_pre_string);
+                    q += sprintf(q, "%s", proxy_pre_string);
                 } else if (!strncmp(p, "http://", 7)) {
-                    q += sprintf((char*)q, "/-.-");
+                    q += sprintf(q, "/-.-");
                 } else {
-                    q += sprintf((char*)q, "%s", base_url);
-                    //q += sprintf((char*)q, "%s", p);
+                    q += sprintf(q, "%s", base_url);
+                    //q += sprintf(q, "%s", p);
                 }
             }
             while (*p) *q++ = *p++;
@@ -302,7 +308,7 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             }
             snprintf(rep_str, sizeof(rep_str), "|http://%s/-.-http://"
             , http_recv_info_p->recv_host);
-            replace_character(p, "|http://", rep_str);
+            replace_character((char*)p, "|http://", rep_str);
             write(accept_socket, p, strlen(p));
             debug_log_output("sent html: %s", p);
         }
@@ -311,13 +317,12 @@ int http_proxy_response(int accept_socket, HTTP_RECV_INFO *http_recv_info_p)
             write(accept_socket, line_buf[i], strlen(line_buf[i]));
         }
         if( http_recv_info_p->isGet == 1 ){
-            return ( copy_descriptors(sock, accept_socket,
-                            (size_t)content_length,
-                            NULL ,
-                            //(char*)http_recv_info_p->recv_uri,
-                            http_recv_info_p->range_start_pos));
+            return ( copy_descriptors(sock, accept_socket, (size_t)content_length) );
+            //NULL ,
+            //(char*)http_recv_info_p->recv_uri,
+           // http_recv_info_p->range_start_pos));
         }
     }
-    close(sock);
+    sClose(sock);
     return 0;
 }

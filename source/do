@@ -1,0 +1,5 @@
+killall wizdlive
+make
+rm /tmp/wizd_debug.log
+./wizdlive
+

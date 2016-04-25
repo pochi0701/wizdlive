@@ -60,31 +60,31 @@ int print_avi_info(char *fname)
                 int i;
                 printf("----- %s\n", str_fourcc(riff_type));
                 for (i=0; i</*avih.dwTotalFrames/ */100 && (len = read_next_chunk(fp, &fcc)) >= 0; i++) {
-                    len = (len + 1)/ 2 * 2;
-                    fseek(fp, len, SEEK_CUR);
-                    printf("fcc: %s\n", str_fourcc(fcc));
-                    printf("fcc&: %s, ", str_fourcc(fcc & 0x0000ffff));
-                    printf("old: %s\n", str_fourcc(old));
-                    if (i != 0 && (fcc & 0x0000ffff) != old) {
-                        flag = 1;
-                        break;
-                    }
-                    old = fcc & 0x0000ffff;
+                len = (len + 1)/ 2 * 2;
+                fseek(fp, len, SEEK_CUR);
+                printf("fcc: %s\n", str_fourcc(fcc));
+                printf("fcc&: %s, ", str_fourcc(fcc & 0x0000ffff));
+                printf("old: %s\n", str_fourcc(old));
+                if (i != 0 && (fcc & 0x0000ffff) != old) {
+                    flag = 1;
+                    break;
                 }
-                printf("%s", flag?"[I]":"[NI]");
-                break;
-            } else {
-                printf("----- %s..\n", str_fourcc(riff_type));
-                fseek(fp, len - sizeof(riff_type), SEEK_CUR);
+                old = fcc & 0x0000ffff;
             }
+            printf("%s", flag?"[I]":"[NI]");
+            break;
         } else {
-            printf("FOURCC: %s\n", str_fourcc(fcc));
-            fseek(fp, len, SEEK_CUR);
+            printf("----- %s..\n", str_fourcc(riff_type));
+            fseek(fp, len - sizeof(riff_type), SEEK_CUR);
         }
-    } while ((len = read_next_chunk(fp, &fcc)) > 0);
-    fclose(fp);
-    printf("\n");
-    return 0;
+    } else {
+        printf("FOURCC: %s\n", str_fourcc(fcc));
+        fseek(fp, len, SEEK_CUR);
+    }
+} while ((len = read_next_chunk(fp, &fcc)) > 0);
+fclose(fp);
+printf("\n");
+return 0;
 }
 int main(int argc, char *argv[])
 {

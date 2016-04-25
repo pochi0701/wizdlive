@@ -1,6 +1,7 @@
 #ifndef linux
 #include <mem.h>
 #endif
+
 static unsigned char ToBase64tbl[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static unsigned char tmpout[256];
 unsigned char *base64(unsigned char *instr)
@@ -14,18 +15,18 @@ unsigned char *base64(unsigned char *instr)
     */
     while (*instr) {
         switch (count) {
-        case 0:
+            case 0:
             *p   = (unsigned char)((*instr >> 2)&0x3f);
             break;
-        case 1:
+            case 1:
             *p   = (unsigned char)((*instr++ << 4)&0x3f);
             *p  |= (unsigned char)((*instr >> 4)&0x3f);
             break;
-        case 2:
+            case 2:
             *p   = (unsigned char)((*instr++ << 2)&0x3f);
             *p  |= (unsigned char)((*instr >> 6)&0x3f);
             break;
-        case 3:
+            case 3:
             *p   = (unsigned char)((*instr++)&0x3f);
             break;
         }
@@ -47,12 +48,14 @@ unsigned char *unbase64(unsigned char *instr)
     int s2;
     int s3;
     int s4;
-char FromBase64tbl[256]={0};
+    
+    char FromBase64tbl[256]={0};
     unsigned char *p = tmpout;
     //逆テーブルの作成,=も０になる
     for( unsigned int i = 0 ; i < sizeof( ToBase64tbl ) ; i++ ){
         FromBase64tbl[ToBase64tbl[i]] = (unsigned char)i;
     }
+    
     /*
     ABC -> 414243 -> 0100 0001  0100 0010  0100 0011
     ->   010000 010100 001001 000011

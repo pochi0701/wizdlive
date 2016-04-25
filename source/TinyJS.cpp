@@ -27,98 +27,98 @@
  */
 
 /* Version 0.1  :  (gw) First published on Google Code
-   Version 0.11 :  Making sure the 'root' variable never changes
-                   'symbol_base' added for the current base of the sybmbol table
-   Version 0.12 :  Added findChildOrCreate, changed wString passing to use references
-                   Fixed broken wString encoding in getJSString()
-                   Removed getInitCode and added getJSON instead
-                   Added nil
-                   Added rough JSON parsing
-                   Improved example app
-   Version 0.13 :  Added tokenEnd/tokenLastEnd to lexer to avoid parsing whitespace
-                   Ability to define functions without names
-                   Can now do "var mine = function(a,b) { ... };"
-                   Slightly better 'trace' function
-                   Added findChildOrCreateByPath function
-                   Added simple test suite
-                   Added skipping of blocks when not executing
-   Version 0.14 :  Added parsing of more number types
-                   Added parsing of wString defined with '
-                   Changed nil to null as per spec, added 'undefined'
-                   Now set variables with the correct scope, and treat unknown
-                              as 'undefined' rather than failing
-                   Added proper (I hope) handling of null and undefined
-                   Added === check
-   Version 0.15 :  Fix for possible memory leaks
-   Version 0.16 :  Removal of un-needed findRecursive calls
-                   symbol_base removed and replaced with 'scopes' stack
-                   Added reference counting a proper tree structure
-                       (Allowing pass by reference)
-                   Allowed JSON output to output IDs, not strings
-                   Added get/set for array indices
-                   Changed Callbacks to include user data pointer
-                   Added some support for objects
-                   Added more Java-esque builtin functions
-   Version 0.17 :  Now we don't deepCopy the parent object of the class
-                   Added JSON.stringify and eval()
-                   Nicer JSON indenting
-                   Fixed function output in JSON
-                   Added evaluateComplex
-                   Fixed some reentrancy issues with evaluate/execute
-   Version 0.18 :  Fixed some issues with code being executed when it shouldn't
-   Version 0.19 :  Added array.length
-                   Changed '__parent' to 'prototype' to bring it more in line with javascript
-   Version 0.20 :  Added '%' operator
-   Version 0.21 :  Added array type
-                   String.length() no more - now String.length
-                   Added extra constructors to reduce confusion
-                   Fixed checks against undefined
-   Version 0.22 :  First part of ardi's changes:
-                       sprintf -> sprintf_s
-                       extra tokens parsed
-                       array memory leak fixed
-                   Fixed memory leak in evaluateComplex
-                   Fixed memory leak in FOR loops
-                   Fixed memory leak for unary minus
-   Version 0.23 :  Allowed evaluate[Complex] to take in semi-colon separated
-                     statements and then only return the value from the last one.
-                     Also checks to make sure *everything* was parsed.
-                   Ints + doubles are now stored in binary form (faster + more precise)
-   Version 0.24 :  More useful error for maths ops
-                   Don't dump everything on a match error.
-   Version 0.25 :  Better wString escaping
-   Version 0.26 :  Add CScriptVar::equals
-                   Add built-in array functions
-   Version 0.27 :  Added OZLB's TinyJS.setVariable (with some tweaks)
-                   Added OZLB's Maths Functions
-   Version 0.28 :  Ternary operator
-                   Rudimentary call stack on error
-                   Added String Character functions
-                   Added shift operators
-   Version 0.29 :  Added new object via functions
-                   Fixed getString() for double on some platforms
-   Version 0.30 :  Rlyeh Mario's patch for Math Functions on VC++
-   Version 0.31 :  Add exec() to TinyJS functions
-                   Now print quoted JSON that can be read by PHP/Python parsers
-                   Fixed postfix increment operator
-   Version 0.32 :  Fixed Math.randInt on 32 bit PCs, where it was broken
-   Version 0.33 :  Fixed Memory leak + brokenness on === comparison
-   Version 0.34 :  Modify for cgi.
+Version 0.11 :  Making sure the 'root' variable never changes
+'symbol_base' added for the current base of the sybmbol table
+Version 0.12 :  Added findChildOrCreate, changed wString passing to use references
+Fixed broken wString encoding in getJSString()
+Removed getInitCode and added getJSON instead
+Added nil
+Added rough JSON parsing
+Improved example app
+Version 0.13 :  Added tokenEnd/tokenLastEnd to lexer to avoid parsing whitespace
+Ability to define functions without names
+Can now do "var mine = function(a,b) { ... };"
+Slightly better 'trace' function
+Added findChildOrCreateByPath function
+Added simple test suite
+Added skipping of blocks when not executing
+Version 0.14 :  Added parsing of more number types
+Added parsing of wString defined with '
+Changed nil to null as per spec, added 'undefined'
+Now set variables with the correct scope, and treat unknown
+as 'undefined' rather than failing
+Added proper (I hope) handling of null and undefined
+Added === check
+Version 0.15 :  Fix for possible memory leaks
+Version 0.16 :  Removal of un-needed findRecursive calls
+symbol_base removed and replaced with 'scopes' stack
+Added reference counting a proper tree structure
+(Allowing pass by reference)
+Allowed JSON output to output IDs, not strings
+Added get/set for array indices
+Changed Callbacks to include user data pointer
+Added some support for objects
+Added more Java-esque builtin functions
+Version 0.17 :  Now we don't deepCopy the parent object of the class
+Added JSON.stringify and eval()
+Nicer JSON indenting
+Fixed function output in JSON
+Added evaluateComplex
+Fixed some reentrancy issues with evaluate/execute
+Version 0.18 :  Fixed some issues with code being executed when it shouldn't
+Version 0.19 :  Added array.length
+Changed '__parent' to 'prototype' to bring it more in line with javascript
+Version 0.20 :  Added '%' operator
+Version 0.21 :  Added array type
+String.length() no more - now String.length
+Added extra constructors to reduce confusion
+Fixed checks against undefined
+Version 0.22 :  First part of ardi's changes:
+sprintf -> sprintf_s
+extra tokens parsed
+array memory leak fixed
+Fixed memory leak in evaluateComplex
+Fixed memory leak in FOR loops
+Fixed memory leak for unary minus
+Version 0.23 :  Allowed evaluate[Complex] to take in semi-colon separated
+statements and then only return the value from the last one.
+Also checks to make sure *everything* was parsed.
+Ints + doubles are now stored in binary form (faster + more precise)
+Version 0.24 :  More useful error for maths ops
+Don't dump everything on a match error.
+Version 0.25 :  Better wString escaping
+Version 0.26 :  Add CScriptVar::equals
+Add built-in array functions
+Version 0.27 :  Added OZLB's TinyJS.setVariable (with some tweaks)
+Added OZLB's Maths Functions
+Version 0.28 :  Ternary operator
+Rudimentary call stack on error
+Added String Character functions
+Added shift operators
+Version 0.29 :  Added new object via functions
+Fixed getString() for double on some platforms
+Version 0.30 :  Rlyeh Mario's patch for Math Functions on VC++
+Version 0.31 :  Add exec() to TinyJS functions
+Now print quoted JSON that can be read by PHP/Python parsers
+Fixed postfix increment operator
+Version 0.32 :  Fixed Math.randInt on 32 bit PCs, where it was broken
+Version 0.33 :  Fixed Memory leak + brokenness on === comparison
+Version 0.34 :  Modify for cgi.
 
-    NOTE:
-          Constructing an array with an initial length 'Array(5)' doesn't work
-          Recursive loops of data such as a.foo = a; fail to be garbage collected
-          length variable cannot be set
-          The postfix increment operator returns the current value, not the previous as it should.
-          There is no prefix increment operator
-          Arrays are implemented as a linked list - hence a lookup time is O(n)
+NOTE:
+Constructing an array with an initial length 'Array(5)' doesn't work
+Recursive loops of data such as a.foo = a; fail to be garbage collected
+length variable cannot be set
+The postfix increment operator returns the current value, not the previous as it should.
+There is no prefix increment operator
+Arrays are implemented as a linked list - hence a lookup time is O(n)
 
-    TODO:
-          Utility va-args style function in TinyJS for executing a function directly
-          Merge the parsing of expressions/statements so eval("statement") works like we'd expect.
-          Move 'shift' implementation into mathsOp
+TODO:
+Utility va-args style function in TinyJS for executing a function directly
+Merge the parsing of expressions/statements so eval("statement") works like we'd expect.
+Move 'shift' implementation into mathsOp
 
- */
+*/
 
 #include "TinyJS.h"
 #include <assert.h>
@@ -127,46 +127,52 @@
 /* Frees the given link IF it isn't owned by anything else */
 #define CLEAN(x) { CScriptVarLink *__v = x; if (__v && !__v->owned) { delete __v; } }
 /* Create a LINK to point to VAR and free the old link.
- * BUT this is more clever - it tries to keep the old link if it's not owned to save allocations */
+* BUT this is more clever - it tries to keep the old link if it's not owned to save allocations */
 #define CREATE_LINK(LINK, VAR) { if (!LINK || LINK->owned) LINK = new CScriptVarLink(VAR); else LINK->replaceWith(VAR); }
+static unsigned char map[256]={
+//+0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,//00
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//10
+   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//20
+   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0,//30
+   0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,//40
+   4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 4,//50
+   0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,//60
+   4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0,//70
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//80
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//90
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//A0
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//B0
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//C0
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//D0
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//E0
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//F0
+}; 
 
-//#include <string>
-//#include <string.h>
-//#include <sstream>
-//#include <cstdlib>
-//#include <stdio.h>
-
-using namespace std;
-
-#ifdef __GNUC__
-#define vsprintf_s vsnprintf
-#define sprintf_s snprintf
-#define _strdup strdup
-#endif
 
 // ----------------------------------------------------------------------------------- Utils
 bool isWhitespace(char ch) {
-    return (ch==' ') || (ch=='\t') || (ch=='\n') || (ch=='\r');
+    return (map[ch]&1);//(ch==' ') || (ch=='\t') || (ch=='\n') || (ch=='\r');
 }
 //数字チェック
 bool isNumeric(char ch) {
-    return (ch>='0') && (ch<='9');
+    return (map[ch]&2);//(ch>='0') && (ch<='9');
 }
 //数値チェック
 bool isNumber(const wString &str) {
     for (size_t i=0;i<str.size();i++)
-      if (!isNumeric(str[i])) return false;
+    if (!isNumeric(str[i])) return false;
     return true;
 }
 //１６進チェック
 bool isHexadecimal(char ch) {
     return ((ch>='0') && (ch<='9')) ||
-           ((ch>='a') && (ch<='f')) ||
-           ((ch>='A') && (ch<='F'));
+    ((ch>='a') && (ch<='f')) ||
+    ((ch>='A') && (ch<='F'));
 }
 //アルファベットチェック
 bool isAlpha(char ch) {
-    return ((ch>='a') && (ch<='z')) || ((ch>='A') && (ch<='Z')) || ch=='_';
+    return (map[ch]&4);//((ch>='a') && (ch<='z')) || ((ch>='A') && (ch<='Z')) || ch=='_';
 }
 //ID文字列になるかチェック
 bool isIDString(const char *s) {
@@ -181,55 +187,85 @@ bool isIDString(const char *s) {
     }
     return true;
 }
+char* oneLine(char *s, int ptr,int end)
+{
+    size_t cnt=0;
+    static char work[1024];
+    if( end < ptr ){
+        ptr = end;
+    }
+    if( ptr>0) ptr--;
+    if( ptr>0) ptr--;
+    while( ptr > 0  && s[ptr] != '\n'){
+        ptr--;
+    }
+    ptr++;
+    while( s[ptr] && s[ptr] != '\n' && cnt < sizeof( work )-2 ){
+        work[cnt] = s[ptr];
+        cnt++;
+        ptr++;
+    }
+    work[cnt] = 0;
+    return work;
+}
 /// convert the given wString into a quoted wString suitable for javascript
 wString getJSString(const wString &str) {
     wString nStr = str;
     for (size_t i=0;i<nStr.size();i++) {
-      const char *replaceWith = "";
-      bool replace = true;
-
-      switch (nStr[i]) {
-        case '\\': replaceWith = "\\\\"; break;
-        case '\n': replaceWith = "\\n"; break;
-        case '\r': replaceWith = "\\r"; break;
-        case '\a': replaceWith = "\\a"; break;
-        case '"':  replaceWith = "\\\""; break;
-        default: {
-          int nCh = ((int)nStr[i]) &0xFF;
-          if (nCh<32 || nCh>127) {
-            char buffer[5];
-            sprintf_s(buffer, 5, "\\x%02X", nCh);
-            replaceWith = buffer;
-          } else {
-            replace=false;
-          }
+        const char *replaceWith = "";
+        bool replace = true;
+        
+        switch (nStr[i]) {
+            case '\\': replaceWith = "\\\\"; break;
+            case '\n': replaceWith = "\\n"; break;
+            case '\r': replaceWith = "\\r"; break;
+            case '\a': replaceWith = "\\a"; break;
+            case '"':  replaceWith = "\\\""; break;
+            default: {
+                int nCh = ((int)nStr[i]) &0xFF;
+                if (nCh<32 || nCh>127) {
+                    char buffer[5];
+                    snprintf(buffer, 5, "\\x%02X", nCh);
+                    replaceWith = buffer;
+                } else {
+                    replace=false;
+                }
+            }
         }
-      }
-
-      if (replace) {
-        nStr = nStr.substr(0, i) + replaceWith + nStr.substr(i+1);
-        i += strlen(replaceWith)-1;
-      }
+        
+        if (replace) {
+            nStr = nStr.substr(0, i) + replaceWith + nStr.substr(i+1);
+            i += strlen(replaceWith)-1;
+        }
     }
     return "\"" + nStr + "\"";
 }
 
 /** Is the wString alphanumeric */
+//英字+[英字|数値]
 bool isAlphaNum(const wString &str) {
     if (str.size()==0){
-      return true;
+        return true;
     }
     if (!isAlpha(str[0])){
-      return false;
+        return false;
     }
     for (size_t i=0;i<str.size();i++){
-      if (!(isAlpha(str[i]) || isNumeric(str[i]))){
-        return false;
-      }
+        if (!(isAlpha(str[i]) || isNumeric(str[i]))){
+            return false;
+        }
     }
     return true;
 }
-
+void TRACE( int socket, const char* format, ... )
+{
+    char work[1024];
+    va_list ap;
+    va_start(ap, format);
+    vsprintf(work,format, ap);
+    va_end(ap);
+    send( socket, work, strlen(work),0);
+}
 // ----------------------------------------------------------------------------------- CSCRIPTEXCEPTION
 // 例外はtextに格納
 CScriptException::CScriptException(const wString &exceptionText) {
@@ -239,13 +275,14 @@ CScriptException::CScriptException(const wString &exceptionText) {
 // ----------------------------------------------------------------------------------- CSCRIPTLEX
 // スクリプト語彙クラス
 CScriptLex::CScriptLex(int mysocket, int* myprinted, wString* myheaderBuf, const wString &input) {
-    data = _strdup(input.c_str());//なぜコピーする？
+    data = strdup(input.c_str());//なぜコピーする？
     dataOwned = true;
     dataStart = 0;
     dataEnd = strlen(data);
     socket = mysocket;
     printed = myprinted;
     headerBuf = myheaderBuf;
+    buffer="";
     reset();
 }
 
@@ -257,6 +294,7 @@ CScriptLex::CScriptLex(int mysocket, int* myprinted, wString* myheaderBuf,CScrip
     socket = mysocket;
     printed = myprinted;
     headerBuf = myheaderBuf;
+    buffer="";
     reset();
 }
 
@@ -272,17 +310,18 @@ void CScriptLex::reset() {
     tokenStart = 0;
     tokenEnd = 0;
     tokenLastEnd = 0;
-    tk = 0;
+    tk = LEX_EOF;
     tkStr = "";
     getNextCh();//currch設定 nextchは不定
     getNextCh();//currch,nextch設定
     getNextToken();//１ワード取り込んだ状態で開始
 }
 //期待する語彙を読み込む（期待はずれなら例外)
+//次の１トークンを先読み
 void CScriptLex::match(int expected_tk) {
     if (tk!=expected_tk) {
         wString errorString;
-        errorString.sprintf( "Got %s expected %s at %s",getTokenStr(tk).c_str(),getTokenStr(expected_tk).c_str(),getPosition(tokenStart).c_str());
+        errorString.sprintf( "Got %s expected %s at %s(%s)\n",getTokenStr(tk).c_str(),getTokenStr(expected_tk).c_str(),getPosition(tokenStart).c_str(),oneLine(data,dataPos,dataEnd));
         throw new CScriptException(errorString.c_str());
     }
     getNextToken();
@@ -291,11 +330,11 @@ void CScriptLex::match(int expected_tk) {
 void headerCheck(int socket, int* printed, wString* headerBuf, int flag)
 {
     if( headerBuf->length() == 0 ){
-         headerBuf->headerInit(0,0);
+        headerBuf->headerInit(0,0);
     }
     if( flag && *printed == 0 ){
-         *printed = 1;
-         headerBuf->headerPrint(socket,1);
+        *printed = 1;
+        headerBuf->headerPrint(socket,1);
     }
 }
 //エラー用等にトークンを語彙に変換
@@ -303,7 +342,7 @@ wString CScriptLex::getTokenStr(int token) {
     if (token>32 && token<128) {
         char buf[4] = "' '";
         buf[1] = (char)token;
-        return buf;
+        return wString(buf);
     }
     switch (token) {
         case LEX_EOF            : return "EOF";
@@ -331,7 +370,7 @@ wString CScriptLex::getTokenStr(int token) {
         case LEX_OREQUAL        : return "|=";
         case LEX_OROR           : return "||";
         case LEX_XOREQUAL       : return "^=";
-                // reserved words
+        // reserved words
         case LEX_R_IF           : return "if";
         case LEX_R_ELSE         : return "else";
         case LEX_R_DO           : return "do";
@@ -348,35 +387,40 @@ wString CScriptLex::getTokenStr(int token) {
         case LEX_R_UNDEFINED    : return "undefined";
         case LEX_R_NEW          : return "new";
     }
-
     wString msg;
     msg.sprintf( "?[%s]",token);
-    return msg.c_str();
+    return msg;
 }
 //次の１文字を取り込む。EOFは０
 void CScriptLex::getNextCh() {
     currCh = nextCh;
     if (dataPos < dataEnd){
-        nextCh = data[dataPos++];
+        nextCh = data[dataPos];
     }else{
         nextCh = 0;
     }
+    dataPos++;
 }
 
 //１トークン取得
 void CScriptLex::getNextToken() {
     tk = LEX_EOF;
     tkStr.clear();
+    if( buffer.length() > 0 ){
+        headerCheck(socket, printed, headerBuf, 1);
+        send( socket, buffer.c_str(),buffer.length(),0);
+        buffer = "";
+    }
     //無駄文字読み飛ばし
     while (currCh && isWhitespace(currCh)){
-      getNextCh();
+        getNextCh();
     }
-
+    
     // newline comments
     if (currCh=='/' && nextCh=='/') {
         while (currCh && currCh!='\n'){
-           //printf( "[%c]",currCh ); 
-           getNextCh();
+            //printf( "[%c]",currCh );
+            getNextCh();
         }
         getNextCh();
         getNextToken();
@@ -384,7 +428,9 @@ void CScriptLex::getNextToken() {
     }
     // block comments
     if (currCh=='/' && nextCh=='*') {
-        while (currCh && (currCh!='*' || nextCh!='/')) getNextCh();
+        while (currCh && (currCh!='*' || nextCh!='/')) {
+            getNextCh();
+        }
         getNextCh();
         getNextCh();
         getNextToken();
@@ -392,20 +438,22 @@ void CScriptLex::getNextToken() {
     }
     // block comments
     if (currCh=='?' && nextCh=='>') {
+        wString tmp;
         getNextCh();
         getNextCh();
+        headerCheck(socket, printed, headerBuf, 1);
         while (currCh && (currCh!='<' || nextCh!='?')){
-           headerCheck(socket, printed, headerBuf, 1);
-           write( socket, &currCh,1); 
-           //printf("%c",currCh);
-           getNextCh();
+            tmp += currCh;
+            //printf("%c",currCh);
+            getNextCh();
         }
         getNextCh();
         getNextCh();
         getNextToken();
+        buffer = tmp;
         return;
     }
-    // record beginning of this token
+    // record beginning of this token(pre-read 2 chars );
     tokenStart = dataPos-2;
     // tokens
     if (isAlpha(currCh)) { //  IDs
@@ -414,7 +462,7 @@ void CScriptLex::getNextToken() {
             getNextCh();
         }
         tk = LEX_ID;
-             if (tkStr=="if")        tk = LEX_R_IF;
+        if (tkStr=="if")        tk = LEX_R_IF;
         else if (tkStr=="else")      tk = LEX_R_ELSE;
         else if (tkStr=="do")        tk = LEX_R_DO;
         else if (tkStr=="while")     tk = LEX_R_WHILE;
@@ -433,8 +481,8 @@ void CScriptLex::getNextToken() {
         bool isHex = false;
         if (currCh=='0') { tkStr += currCh; getNextCh(); }
         if (currCh=='x') {
-          isHex = true;
-          tkStr += currCh; getNextCh();
+            isHex = true;
+            tkStr += currCh; getNextCh();
         }
         tk = LEX_INT;
         while (isNumeric(currCh) || (isHex && isHexadecimal(currCh))) {
@@ -452,17 +500,17 @@ void CScriptLex::getNextToken() {
         }
         // do fancy e-style floating point
         if (!isHex && (currCh=='e'||currCh=='E')) {
-          tk = LEX_FLOAT;
-          tkStr += currCh;
-          getNextCh();
-          if (currCh=='-') {
-             tkStr += currCh;
-             getNextCh();
-          }
-          while (isNumeric(currCh)) {
-             tkStr += currCh;
-             getNextCh();
-          }
+            tk = LEX_FLOAT;
+            tkStr += currCh;
+            getNextCh();
+            if (currCh=='-') {
+                tkStr += currCh;
+                getNextCh();
+            }
+            while (isNumeric(currCh)) {
+                tkStr += currCh;
+                getNextCh();
+            }
         }
     } else if (currCh=='"') {
         // strings...
@@ -471,12 +519,12 @@ void CScriptLex::getNextToken() {
             if (currCh == '\\') {
                 getNextCh();
                 switch (currCh) {
-                case 'n' : tkStr += '\n'; break;
-                case 'r' : tkStr += '\r'; break;
-                case 't' : tkStr += '\t'; break;
-                case '"' : tkStr += '"'; break;
-                case '\\' : tkStr += '\\'; break;
-                default: tkStr += currCh;
+                    case 'n' : tkStr += '\n'; break;
+                    case 'r' : tkStr += '\r'; break;
+                    case 't' : tkStr += '\t'; break;
+                    case '"' : tkStr += '"'; break;
+                    case '\\' : tkStr += '\\'; break;
+                    default: tkStr += currCh;
                 }
             } else {
                 tkStr += currCh;
@@ -492,27 +540,27 @@ void CScriptLex::getNextToken() {
             if (currCh == '\\') {
                 getNextCh();
                 switch (currCh) {
-                case 'n' : tkStr += '\n'; break;
-                case 'a' : tkStr += '\a'; break;
-                case 'r' : tkStr += '\r'; break;
-                case 't' : tkStr += '\t'; break;
-                case '\'' : tkStr += '\''; break;
-                case '\\' : tkStr += '\\'; break;
-                case 'x' : { // hex digits
-                              char buf[3] = "??";
-                              getNextCh(); buf[0] = currCh;
-                              getNextCh(); buf[1] = currCh;
-                              tkStr += (char)strtol(buf,0,16);
-                           } break;
-                default: if (currCh>='0' && currCh<='7') {
-                           // octal digits
-                           char buf[4] = "???";
-                           buf[0] = currCh;
-                           getNextCh(); buf[1] = currCh;
-                           getNextCh(); buf[2] = currCh;
-                           tkStr += (char)strtol(buf,0,8);
-                         } else
-                           tkStr += currCh;
+                    case 'n' : tkStr += '\n'; break;
+                    case 'a' : tkStr += '\a'; break;
+                    case 'r' : tkStr += '\r'; break;
+                    case 't' : tkStr += '\t'; break;
+                    case '\'' : tkStr += '\''; break;
+                    case '\\' : tkStr += '\\'; break;
+                    case 'x' : { // hex digits
+                        char buf[3] = "??";
+                        getNextCh(); buf[0] = currCh;
+                        getNextCh(); buf[1] = currCh;
+                        tkStr += (char)strtol(buf,0,16);
+                    } break;
+                    default: if (currCh>='0' && currCh<='7') {
+                        // octal digits
+                        char buf[4] = "???";
+                        buf[0] = currCh;
+                        getNextCh(); buf[1] = currCh;
+                        getNextCh(); buf[2] = currCh;
+                        tkStr += (char)strtol(buf,0,8);
+                    } else
+                    tkStr += currCh;
                 }
             } else {
                 tkStr += currCh;
@@ -523,21 +571,21 @@ void CScriptLex::getNextToken() {
         tk = LEX_STR;
     } else {
         // single chars
-        tk = currCh;
+        tk = (LEX_TYPES)currCh;
         if (currCh) getNextCh();
         if (tk=='=' && currCh=='=') { // ==
             tk = LEX_EQUAL;
             getNextCh();
             if (currCh=='=') { // ===
-              tk = LEX_TYPEEQUAL;
-              getNextCh();
+                tk = LEX_TYPEEQUAL;
+                getNextCh();
             }
         } else if (tk=='!' && currCh=='=') { // !=
             tk = LEX_NEQUAL;
             getNextCh();
             if (currCh=='=') { // !==
-              tk = LEX_NTYPEEQUAL;
-              getNextCh();
+                tk = LEX_NTYPEEQUAL;
+                getNextCh();
             }
         } else if (tk=='<' && currCh=='=') {
             tk = LEX_LEQUAL;
@@ -546,8 +594,8 @@ void CScriptLex::getNextToken() {
             tk = LEX_LSHIFT;
             getNextCh();
             if (currCh=='=') { // <<=
-              tk = LEX_LSHIFTEQUAL;
-              getNextCh();
+                tk = LEX_LSHIFTEQUAL;
+                getNextCh();
             }
         } else if (tk=='>' && currCh=='=') {
             tk = LEX_GEQUAL;
@@ -556,11 +604,11 @@ void CScriptLex::getNextToken() {
             tk = LEX_RSHIFT;
             getNextCh();
             if (currCh=='=') { // >>=
-              tk = LEX_RSHIFTEQUAL;
-              getNextCh();
+                tk = LEX_RSHIFTEQUAL;
+                getNextCh();
             } else if (currCh=='>') { // >>>
-              tk = LEX_RSHIFTUNSIGNED;
-              getNextCh();
+                tk = LEX_RSHIFTUNSIGNED;
+                getNextCh();
             }
         }  else if (tk=='+' && currCh=='=') {
             tk = LEX_PLUSEQUAL;
@@ -600,7 +648,7 @@ wString CScriptLex::getSubString(int lastPosition) {
     int lastCharIdx = tokenLastEnd+1;
     if (lastCharIdx < dataEnd) {
         /* save a memory alloc by using our data array to create the
-           substring */
+           subistring */
         char old = data[lastCharIdx];
         data[lastCharIdx] = 0;
         wString value = &data[lastPosition];
@@ -615,9 +663,9 @@ wString CScriptLex::getSubString(int lastPosition) {
 CScriptLex *CScriptLex::getSubLex(int lastPosition) {
     int lastCharIdx = tokenLastEnd+1;
     if (lastCharIdx < dataEnd)
-        return new CScriptLex(socket,printed,headerBuf,this, lastPosition, lastCharIdx);
+    return new CScriptLex(socket,printed,headerBuf,this, lastPosition, lastCharIdx);
     else
-        return new CScriptLex(socket,printed,headerBuf,this, lastPosition, dataEnd );
+    return new CScriptLex(socket,printed,headerBuf,this, lastPosition, dataEnd );
 }
 //指定位置を行数、列数に変換
 wString CScriptLex::getPosition(int pos) {
@@ -626,17 +674,17 @@ wString CScriptLex::getPosition(int pos) {
     for (int i=0;i<pos;i++) {
         char ch;
         if (i < dataEnd)
-            ch = data[i];
+        ch = data[i];
         else
-            ch = 0;
+        ch = 0;
         col++;
         if (ch=='\n') {
             line++;
             col = 0;
         }
     }
-    char buf[256];
-    sprintf_s(buf, 256, "(line: %d, col: %d)", line-1, col);
+    wString buf;
+    buf.sprintf("(line: %d, col: %d)", line-1, col);
     return buf;
 }
 
@@ -671,9 +719,9 @@ void CScriptVarLink::replaceWith(CScriptVar *newVar) {
 
 void CScriptVarLink::replaceWith(CScriptVarLink *newVar) {
     if (newVar)
-      replaceWith(newVar->var);
+    replaceWith(newVar->var);
     else
-      replaceWith(new CScriptVar());
+    replaceWith(new CScriptVar());
 }
 //名前を数値に変換
 int CScriptVarLink::getIntName() {
@@ -682,7 +730,7 @@ int CScriptVarLink::getIntName() {
 //名前を設定
 void CScriptVarLink::setIntName(int n) {
     char sIdx[64];
-    sprintf_s(sIdx, sizeof(sIdx), "%d", n);
+    snprintf(sIdx, sizeof(sIdx), "%d", n);
     name = sIdx;
 }
 
@@ -707,11 +755,11 @@ CScriptVar::CScriptVar(const wString &varData, int varFlags) {
     init();
     flags = varFlags;
     if (varFlags & SCRIPTVAR_INTEGER) {
-      intData = strtol(varData.c_str(),0,0);
+        intData = strtol(varData.c_str(),0,0);
     } else if (varFlags & SCRIPTVAR_DOUBLE) {
-      doubleData = strtod(varData.c_str(),0);
+        doubleData = strtod(varData.c_str(),0);
     } else
-      data = varData;
+    data = varData;
 }
 
 CScriptVar::CScriptVar(double val) {
@@ -721,6 +769,11 @@ CScriptVar::CScriptVar(double val) {
 }
 
 CScriptVar::CScriptVar(int val) {
+    refs = 0;
+    init();
+    setInt(val);
+}
+CScriptVar::CScriptVar(bool val){
     refs = 0;
     init();
     setInt(val);
@@ -758,7 +811,7 @@ CScriptVarLink *CScriptVar::findChild(const wString &childName) {
     CScriptVarLink *v = firstChild;
     while (v) {
         if (v->name.compare(childName)==0)
-            return v;
+        return v;
         v = v->nextSibling;
     }
     return 0;
@@ -767,27 +820,27 @@ CScriptVarLink *CScriptVar::findChild(const wString &childName) {
 CScriptVarLink *CScriptVar::findChildOrCreate(const wString &childName, int varFlags) {
     CScriptVarLink *l = findChild(childName);
     if (l) return l;
-
+    
     return addChild(childName, new CScriptVar(TINYJS_BLANK_DATA, varFlags));
 }
 
 CScriptVarLink *CScriptVar::findChildOrCreateByPath(const wString &path) {
-  size_t p = path.find('.');
-  if (p == string::npos)
+    size_t p = path.find('.');
+    if (p == wString::npos)
     return findChildOrCreate(path);
-
-  return findChildOrCreate(path.substr(0,p), SCRIPTVAR_OBJECT)->var->
-            findChildOrCreateByPath(path.substr(p+1));
+    
+    return findChildOrCreate(path.substr(0,p), SCRIPTVAR_OBJECT)->var->
+    findChildOrCreateByPath(path.substr(p+1));
 }
 
 CScriptVarLink *CScriptVar::addChild(const wString &childName, CScriptVar *child) {
-  if (isUndefined()) {
-    flags = SCRIPTVAR_OBJECT;
-  }
+    if (isUndefined()) {
+        flags = SCRIPTVAR_OBJECT;
+    }
     // if no child supplied, create one
     if (!child)
-      child = new CScriptVar();
-
+    child = new CScriptVar();
+    
     CScriptVarLink *link = new CScriptVarLink(child, childName);
     link->owned = true;
     if (lastChild) {
@@ -804,23 +857,24 @@ CScriptVarLink *CScriptVar::addChild(const wString &childName, CScriptVar *child
 CScriptVarLink *CScriptVar::addChildNoDup(const wString &childName, CScriptVar *child) {
     // if no child supplied, create one
     if (!child)
-      child = new CScriptVar();
-
+    child = new CScriptVar();
+    
     CScriptVarLink *v = findChild(childName);
     if (v) {
         v->replaceWith(child);
     } else {
         v = addChild(childName, child);
     }
-
+    
     return v;
 }
 
 void CScriptVar::removeChild(CScriptVar *child) {
     CScriptVarLink *link = firstChild;
     while (link) {
-        if (link->var == child)
+        if (link->var == child){
             break;
+        }
         link = link->nextSibling;
     }
     ASSERT(link);
@@ -830,13 +884,13 @@ void CScriptVar::removeChild(CScriptVar *child) {
 void CScriptVar::removeLink(CScriptVarLink *link) {
     if (!link) return;
     if (link->nextSibling)
-      link->nextSibling->prevSibling = link->prevSibling;
+    link->nextSibling->prevSibling = link->prevSibling;
     if (link->prevSibling)
-      link->prevSibling->nextSibling = link->nextSibling;
+    link->prevSibling->nextSibling = link->nextSibling;
     if (lastChild == link)
-        lastChild = link->prevSibling;
+    lastChild = link->prevSibling;
     if (firstChild == link)
-        firstChild = link->nextSibling;
+    firstChild = link->nextSibling;
     delete link;
 }
 
@@ -853,7 +907,7 @@ void CScriptVar::removeAllChildren() {
 
 CScriptVar *CScriptVar::getArrayIndex(int idx) {
     char sIdx[64];
-    sprintf_s(sIdx, sizeof(sIdx), "%d", idx);
+    snprintf(sIdx, sizeof(sIdx), "%d", idx);
     CScriptVarLink *link = findChild(sIdx);
     if (link) return link->var;
     else return new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_NULL); // undefined
@@ -861,16 +915,16 @@ CScriptVar *CScriptVar::getArrayIndex(int idx) {
 
 void CScriptVar::setArrayIndex(int idx, CScriptVar *value) {
     char sIdx[64];
-    sprintf_s(sIdx, sizeof(sIdx), "%d", idx);
+    snprintf(sIdx, sizeof(sIdx), "%d", idx);
     CScriptVarLink *link = findChild(sIdx);
-
+    
     if (link) {
-      if (value->isUndefined())
+        if (value->isUndefined())
         removeLink(link);
-      else
+        else
         link->replaceWith(value);
     } else {
-      if (!value->isUndefined())
+        if (!value->isUndefined())
         addChild(sIdx, value);
     }
 }
@@ -878,14 +932,14 @@ void CScriptVar::setArrayIndex(int idx, CScriptVar *value) {
 int CScriptVar::getArrayLength() {
     int highest = -1;
     if (!isArray()) return 0;
-
+    
     CScriptVarLink *link = firstChild;
     while (link) {
-      if (isNumber(link->name)) {
-        int val = atoi(link->name.c_str());
-        if (val > highest) highest = val;
-      }
-      link = link->nextSibling;
+        if (isNumber(link->name)) {
+            int val = atoi(link->name.c_str());
+            if (val > highest) highest = val;
+        }
+        link = link->nextSibling;
     }
     return highest+1;
 }
@@ -894,8 +948,8 @@ int CScriptVar::getChildren() {
     int n = 0;
     CScriptVarLink *link = firstChild;
     while (link) {
-      n++;
-      link = link->nextSibling;
+        n++;
+        link = link->nextSibling;
     }
     return n;
 }
@@ -919,20 +973,20 @@ double CScriptVar::getDouble() {
 
 const wString &CScriptVar::getString() {
     /* Because we can't return a wString that is generated on demand.
-     * I should really just use char* :) */
+    * I should really just use char* :) */
     static wString s_null = "null";
     static wString s_undefined = "undefined";
     if (isInt()) {
-      char buffer[32];
-      sprintf_s(buffer, sizeof(buffer), "%ld", intData);
-      data = buffer;
-      return data;
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "%ld", intData);
+        data = buffer;
+        return data;
     }
     if (isDouble()) {
-      char buffer[32];
-      sprintf_s(buffer, sizeof(buffer), "%f", doubleData);
-      data = buffer;
-      return data;
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "%f", doubleData);
+        data = buffer;
+        return data;
     }
     if (isNull()) return s_null;
     if (isUndefined()) return s_undefined;
@@ -991,27 +1045,27 @@ CScriptVar *CScriptVar::mathsOp(CScriptVar *b, int op) {
     CScriptVar *a = this;
     // Type equality check
     if (op == LEX_TYPEEQUAL || op == LEX_NTYPEEQUAL) {
-      // check type first, then call again to check data
-      bool eql = ((a->flags & SCRIPTVAR_VARTYPEMASK) ==
-                  (b->flags & SCRIPTVAR_VARTYPEMASK));
-      if (eql) {
-        CScriptVar *contents = a->mathsOp(b, LEX_EQUAL);
-        if (!contents->getBool()) eql = false;
-        if (!contents->refs) delete contents;
-      }
-                 ;
-      if (op == LEX_TYPEEQUAL)
+        // check type first, then call again to check data
+        bool eql = ((a->flags & SCRIPTVAR_VARTYPEMASK) ==
+        (b->flags & SCRIPTVAR_VARTYPEMASK));
+        if (eql) {
+            CScriptVar *contents = a->mathsOp(b, LEX_EQUAL);
+            if (!contents->getBool()) eql = false;
+            if (!contents->refs) delete contents;
+        }
+        ;
+        if (op == LEX_TYPEEQUAL)
         return new CScriptVar(eql);
-      else
+        else
         return new CScriptVar(!eql);
     }
     // do maths...
     if (a->isUndefined() && b->isUndefined()) {
-      if (op == LEX_EQUAL) return new CScriptVar(true);
-      else if (op == LEX_NEQUAL) return new CScriptVar(false);
-      else return new CScriptVar(); // undefined
+        if (op == LEX_EQUAL)       return new CScriptVar(true);
+        else if (op == LEX_NEQUAL) return new CScriptVar(false);
+        else return new CScriptVar(); // undefined
     } else if ((a->isNumeric() || a->isUndefined()) &&
-               (b->isNumeric() || b->isUndefined())) {
+    (b->isNumeric() || b->isUndefined())) {
         if (!a->isDouble() && !b->isDouble()) {
             // use ints
             int da = a->getInt();
@@ -1024,12 +1078,12 @@ CScriptVar *CScriptVar::mathsOp(CScriptVar *b, int op) {
                 case '&': return new CScriptVar(da&db);
                 case '|': return new CScriptVar(da|db);
                 case '^': return new CScriptVar(da^db);
-                case '%': return new CScriptVar(da%db);
+                case '%':           return new CScriptVar(da%db);
                 case LEX_EQUAL:     return new CScriptVar(da==db);
                 case LEX_NEQUAL:    return new CScriptVar(da!=db);
-                case '<':     return new CScriptVar(da<db);
+                case '<':           return new CScriptVar(da<db);
                 case LEX_LEQUAL:    return new CScriptVar(da<=db);
-                case '>':     return new CScriptVar(da>db);
+                case '>':           return new CScriptVar(da>db);
                 case LEX_GEQUAL:    return new CScriptVar(da>=db);
                 default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the Int datatype");
             }
@@ -1044,44 +1098,45 @@ CScriptVar *CScriptVar::mathsOp(CScriptVar *b, int op) {
                 case '/': return new CScriptVar(da/db);
                 case LEX_EQUAL:     return new CScriptVar(da==db);
                 case LEX_NEQUAL:    return new CScriptVar(da!=db);
-                case '<':     return new CScriptVar(da<db);
+                case '<':           return new CScriptVar(da<db);
                 case LEX_LEQUAL:    return new CScriptVar(da<=db);
-                case '>':     return new CScriptVar(da>db);
+                case '>':           return new CScriptVar(da>db);
                 case LEX_GEQUAL:    return new CScriptVar(da>=db);
                 default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the Double datatype");
             }
         }
     } else if (a->isArray()) {
-      /* Just check pointers */
-      switch (op) {
-           case LEX_EQUAL: return new CScriptVar(a==b);
-           case LEX_NEQUAL: return new CScriptVar(a!=b);
-           default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the Array datatype");
-      }
+        /* Just check pointers */
+        switch (op) {
+            case LEX_EQUAL: return new CScriptVar(a==b);
+            case LEX_NEQUAL: return new CScriptVar(a!=b);
+            default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the Array datatype");
+        }
     } else if (a->isObject()) {
-          /* Just check pointers */
-          switch (op) {
-               case LEX_EQUAL: return new CScriptVar(a==b);
-               case LEX_NEQUAL: return new CScriptVar(a!=b);
-               default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the Object datatype");
-          }
+        /* Just check pointers */
+        switch (op) {
+            case LEX_EQUAL: return new CScriptVar(a==b);
+            case LEX_NEQUAL: return new CScriptVar(a!=b);
+            default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the Object datatype");
+        }
     } else {
-       wString da = a->getString();
-       wString db = b->getString();
-       // use strings
-       switch (op) {
-           case '+':           return new CScriptVar(da+db, SCRIPTVAR_STRING);
-           case LEX_EQUAL:     return new CScriptVar(da==db);
-           case LEX_NEQUAL:    return new CScriptVar(da!=db);
-           case '<':     return new CScriptVar(da<db);
-           case LEX_LEQUAL:    return new CScriptVar(da<=db);
-           case '>':     return new CScriptVar(da>db);
-           case LEX_GEQUAL:    return new CScriptVar(da>=db);
-           default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the wString datatype");
-       }
+        wString da = a->getString();
+        wString db = b->getString();
+        // use strings
+        switch (op) {
+            case '+':           return new CScriptVar(da+db, SCRIPTVAR_STRING);
+            case LEX_EQUAL:     return new CScriptVar(da==db);
+            case LEX_NEQUAL:    return new CScriptVar(da!=db);
+            case '<':           return new CScriptVar(da<db);
+            case LEX_LEQUAL:    return new CScriptVar(da<=db);
+            case '>':           return new CScriptVar(da>db);
+            case LEX_GEQUAL:    return new CScriptVar(da>=db);
+            default: throw new CScriptException("Operation "+CScriptLex::getTokenStr(op)+" not supported on the wString datatype");
+        }
     }
-    ASSERT(0);
-    return 0;
+    //実行されないコード
+    //ASSERT(0);
+    //return 0;
 }
 
 void CScriptVar::copySimpleData(CScriptVar *val) {
@@ -1093,25 +1148,25 @@ void CScriptVar::copySimpleData(CScriptVar *val) {
 
 void CScriptVar::copyValue(CScriptVar *val) {
     if (val) {
-      copySimpleData(val);
-      // remove all current children
-      removeAllChildren();
-      // copy children of 'val'
-      CScriptVarLink *child = val->firstChild;
-      while (child) {
-        CScriptVar *copied;
-        // don't copy the 'parent' object...
-        if (child->name != TINYJS_PROTOTYPE_CLASS)
-          copied = child->var->deepCopy();
-        else
-          copied = child->var;
-
-        addChild(child->name, copied);
-
-        child = child->nextSibling;
-      }
+        copySimpleData(val);
+        // remove all current children
+        removeAllChildren();
+        // copy children of 'val'
+        CScriptVarLink *child = val->firstChild;
+        while (child) {
+            CScriptVar *copied;
+            // don't copy the 'parent' object...
+            if (child->name != TINYJS_PROTOTYPE_CLASS)
+            copied = child->var->deepCopy();
+            else
+            copied = child->var;
+            
+            addChild(child->name, copied);
+            
+            child = child->nextSibling;
+        }
     } else {
-      setUndefined();
+        setUndefined();
     }
 }
 
@@ -1124,108 +1179,115 @@ CScriptVar *CScriptVar::deepCopy() {
         CScriptVar *copied;
         // don't copy the 'parent' object...
         if (child->name != TINYJS_PROTOTYPE_CLASS)
-          copied = child->var->deepCopy();
+        copied = child->var->deepCopy();
         else
-          copied = child->var;
-
+        copied = child->var;
+        
         newVar->addChild(child->name, copied);
         child = child->nextSibling;
     }
     return newVar;
 }
 
-void CScriptVar::trace(wString indentStr, const wString &name) {
-    TRACE("%s'%s' = '%s' %s\n",
-        indentStr.c_str(),
-        name.c_str(),
-        getString().c_str(),
-        getFlagsAsString().c_str());
+void CScriptVar::trace(int socket, wString indentStr, const wString &name) {
+    wString work;
+    work.wString::sprintf( "%s'%s' = '%s' %s\n",indentStr.c_str(),name.c_str(),getString().c_str(),getFlagsAsString().c_str());
+    send( socket, work.c_str(), work.length(),0);
     wString indent = indentStr+" ";
     CScriptVarLink *link = firstChild;
     while (link) {
-      link->var->trace(indent, link->name);
-      link = link->nextSibling;
+        link->var->trace(socket,indent, link->name);
+        link = link->nextSibling;
     }
+}
+wString CScriptVar::trace2(void) {
+    wString str;
+    CScriptVarLink *link = firstChild;
+    while (link) {
+        str.Add( link->name );
+        link = link->nextSibling;
+    }
+    return str;
 }
 
 wString CScriptVar::getFlagsAsString() {
-  wString flagstr = "";
-  if (flags&SCRIPTVAR_FUNCTION) flagstr += "FUNCTION ";
-  if (flags&SCRIPTVAR_OBJECT)   flagstr += "OBJECT ";
-  if (flags&SCRIPTVAR_ARRAY)    flagstr += "ARRAY ";
-  if (flags&SCRIPTVAR_NATIVE)   flagstr += "NATIVE ";
-  if (flags&SCRIPTVAR_DOUBLE)   flagstr += "DOUBLE ";
-  if (flags&SCRIPTVAR_INTEGER)  flagstr += "INTEGER ";
-  if (flags&SCRIPTVAR_STRING)   flagstr += "STRING ";
-  return flagstr;
+    wString flagstr = "";
+    if (flags&SCRIPTVAR_FUNCTION) flagstr += "FUNCTION ";
+    if (flags&SCRIPTVAR_OBJECT)   flagstr += "OBJECT ";
+    if (flags&SCRIPTVAR_ARRAY)    flagstr += "ARRAY ";
+    if (flags&SCRIPTVAR_NATIVE)   flagstr += "NATIVE ";
+    if (flags&SCRIPTVAR_DOUBLE)   flagstr += "DOUBLE ";
+    if (flags&SCRIPTVAR_INTEGER)  flagstr += "INTEGER ";
+    if (flags&SCRIPTVAR_STRING)   flagstr += "STRING ";
+    return flagstr;
 }
 
 wString CScriptVar::getParsableString() {
-  // Numbers can just be put in directly
-  if (isNumeric()) {
-    return getString();
-  }
-  if (isFunction()) {
-    wString funcStr;
-    funcStr += "function (";
-    // get list of parameters
-    CScriptVarLink *link = firstChild;
-    while (link) {
-      funcStr += link->name;
-      if (link->nextSibling) funcStr += ",";
-      link = link->nextSibling;
+    // Numbers can just be put in directly
+    if (isNumeric()) {
+        return getString();
     }
-    // add function body
-    funcStr += ") ";
-    funcStr += getString();
-    return funcStr.c_str();
-  }
-  // if it is a wString then we quote it
-  if (isString()){
-    return getJSString(getString());
-  }
-  if (isNull()){
-      return "null";
-  }
-  return "undefined";
+    if (isFunction()) {
+        wString funcStr;
+        funcStr += "function (";
+        // get list of parameters
+        CScriptVarLink *link = firstChild;
+        while (link) {
+            funcStr += link->name;
+            if (link->nextSibling) funcStr += ",";
+            link = link->nextSibling;
+        }
+        // add function body
+        funcStr += ") ";
+        funcStr += getString();
+        return funcStr.c_str();
+    }
+    // if it is a wString then we quote it
+    if (isString()){
+        return getJSString(getString());
+    }
+    if (isNull()){
+        return "null";
+    }
+    return "undefined";
 }
 
 void CScriptVar::getJSON(wString &destination, const wString linePrefix) {
-   if (isObject()) {
-      wString indentedLinePrefix = linePrefix+"  ";
-      // children - handle with bracketed list
-      destination += "{ \n";
-      CScriptVarLink *link = firstChild;
-      while (link) {
-        destination += indentedLinePrefix;
-        destination += getJSString(link->name).c_str();
-        destination += " : ";
-        link->var->getJSON(destination, indentedLinePrefix);
-        link = link->nextSibling;
-        if (link) {
-          destination  += ",\n";
+    if (isObject()) {
+        wString indentedLinePrefix = linePrefix+"  ";
+        // children - handle with bracketed list
+        destination += "{ \n";
+        CScriptVarLink *link = firstChild;
+        while (link) {
+            destination += indentedLinePrefix;
+            destination += getJSString(link->name).c_str();
+            destination += " : ";
+            link->var->getJSON(destination, indentedLinePrefix);
+            link = link->nextSibling;
+            if (link) {
+                destination  += ",\n";
+            }
         }
-      }
-      destination += "\n";
-      destination += linePrefix;
-      destination +=  "}";
+        destination += "\n";
+        destination += linePrefix;
+        destination +=  "}";
     } else if (isArray()) {
-      wString indentedLinePrefix = linePrefix+"  ";
-      destination += "[\n";
-      int len = getArrayLength();
-      if (len>10000) len=10000; // we don't want to get stuck here!
-
-      for (int i=0;i<len;i++) {
-        getArrayIndex(i)->getJSON(destination, indentedLinePrefix);
-        if (i<len-1) destination  += ",\n";
-      }
-
-      destination += "\n";
-      destination += linePrefix;
-      destination += "]";
+        wString indentedLinePrefix = linePrefix+"  ";
+        destination += "[\n";
+        int len = getArrayLength();
+        if (len>10000) len=10000; // we don't want to get stuck here!
+        
+        for (int i=0;i<len;i++) {
+            getArrayIndex(i)->getJSON(destination, indentedLinePrefix);
+            if (i<len-1) destination  += ",\n";
+        }
+        
+        destination += "\n";
+        destination += linePrefix;
+        destination += "]";
     } else {
-      // no children or a function... just write value directly
-      destination += getParsableString();
+        // no children or a function... just write value directly
+        destination += getParsableString();
     }
 }
 
@@ -1243,7 +1305,7 @@ CScriptVar *CScriptVar::ref() {
 void CScriptVar::unref() {
     if (refs<=0) printf("OMFG, we have unreffed too far!\n");
     if ((--refs)==0) {
-      delete this;
+        delete this;
     }
 }
 
@@ -1254,7 +1316,7 @@ int CScriptVar::getRefs() {
 
 // ----------------------------------------------------------------------------------- CSCRIPT
 
-CTinyJS::CTinyJS(int mysocket) {
+CTinyJS::CTinyJS() {
     l = 0;
     root = (new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT))->ref();
     // Add built-in classes
@@ -1264,7 +1326,6 @@ CTinyJS::CTinyJS(int mysocket) {
     root->addChild("String", stringClass);
     root->addChild("Array", arrayClass);
     root->addChild("Object", objectClass);
-    socket = mysocket;
     printed = 0;
     headerBuf = new wString();
     //wString::wStringInit();
@@ -1281,86 +1342,91 @@ CTinyJS::~CTinyJS() {
     //wString::wStringEnd();
 }
 
-void CTinyJS::trace() {
-    root->trace();
+void CTinyJS::trace(int socket) {
+    root->trace(socket);
 }
 
 void CTinyJS::execute(const wString &code) {
     CScriptLex *oldLex = l;
-    vector<CScriptVar*> oldScopes = scopes;
+    std::vector<CScriptVar*> oldScopes = scopes;
     l = new CScriptLex(socket,&printed, headerBuf, code);
-#ifdef TINYJS_CALL_STACK
+    #ifdef TINYJS_CALL_STACK
     call_stack.clear();
-#endif
+    #endif
     scopes.clear();
     scopes.push_back(root);
     try {
         bool execute = true;
-        while (l->tk) statement(execute);
+        while (l->tk) {
+            LEX_TYPES ret = statement(execute);
+            if( ret != LEX_EOF ){
+                wString errorString;
+                errorString.sprintf( "Syntax error %s at %s",l->getTokenStr(ret).c_str(),l->getPosition(l->tokenStart).c_str());
+                throw new CScriptException(errorString.c_str());
+            }
+        }
+        //バッファ出力
+        if( l->buffer.length() > 0 ){
+            //headerCheck(socket, printed, headerBuf, 1);
+            send( socket, l->buffer.c_str(),l->buffer.length(),0);
+            l->buffer = "";
+        }
     } catch (CScriptException *e) {
         wString msg;
-        msg += "Error ";
-        msg +=  e->text;
-#ifdef TINYJS_CALL_STACK
+        msg.sprintf("Error %s",e->text.c_str());;
+        //msg +=  e->text;
+        #ifdef TINYJS_CALL_STACK
         for (int i=(int)call_stack.size()-1;i>=0;i--){
-          msg += "\n";
-          msg +=  i;
-          msg +=  ": ";
-          msg +=  call_stack.at(i);
+            msg.cat_sprintf("\n%d: %s",i,call_stack.at(i).c_str());
         }
-#endif
-        msg += " at ";
-        msg += l->getPosition();
+        #endif
+        msg.cat_sprintf( " at %s",l->getPosition().c_str());
         delete l;
         l = oldLex;
-
+        
         throw new CScriptException(msg.c_str());
     }
     delete l;
     l = oldLex;
     scopes = oldScopes;
 }
-
+//複合式
 CScriptVarLink CTinyJS::evaluateComplex(const wString &code) {
     CScriptLex *oldLex = l;
-    vector<CScriptVar*> oldScopes = scopes;
-
+    std::vector<CScriptVar*> oldScopes = scopes;
+    
     l = new CScriptLex(socket, &printed, headerBuf, code);
-#ifdef TINYJS_CALL_STACK
+    #ifdef TINYJS_CALL_STACK
     call_stack.clear();
-#endif
+    #endif
     scopes.clear();
     scopes.push_back(root);
     CScriptVarLink *v = 0;
     try {
         bool execute = true;
         do {
-          CLEAN(v);
-          v = base(execute);
-          if (l->tk!=LEX_EOF) l->match(';');
+            CLEAN(v);
+            v = base(execute);
+            if (l->tk!=LEX_EOF) l->match(';');
         } while (l->tk!=LEX_EOF);
     } catch (CScriptException *e) {
-      wString msg;
-      msg.sprintf( "Error %s", e->text.c_str() );
-#ifdef TINYJS_CALL_STACK
-      for (int i=(int)call_stack.size()-1;i>=0;i--){
-        msg += "\n";
-        msg += i;
-        msg += ": ";
-        msg += call_stack.at(i);
-      }
-#endif
-      msg += " at ";
-      msg += l->getPosition();
-      delete l;
-      l = oldLex;
-
+        wString msg;
+        msg.sprintf( "Error %s", e->text.c_str() );
+        #ifdef TINYJS_CALL_STACK
+        for (int i=(int)call_stack.size()-1;i>=0;i--){
+            msg.cat_sprintf("\n%d: %s",i,call_stack.at(i).c_str());
+        }
+        #endif
+        msg.cat_sprintf(" at %s",l->getPosition().c_str());
+        delete l;
+        l = oldLex;
+        
         throw new CScriptException(msg.c_str());
     }
     delete l;
     l = oldLex;
     scopes = oldScopes;
-
+    
     if (v) {
         CScriptVarLink r = *v;
         CLEAN(v);
@@ -1369,164 +1435,165 @@ CScriptVarLink CTinyJS::evaluateComplex(const wString &code) {
     // return undefined...
     return CScriptVarLink(new CScriptVar());
 }
-
+//式の評価
 wString CTinyJS::evaluate(const wString &code) {
     return evaluateComplex(code).var->getString();
 }
 
 void CTinyJS::parseFunctionArguments(CScriptVar *funcVar) {
-  l->match('(');
-  while (l->tk!=')') {
-      funcVar->addChildNoDup(l->tkStr);
-      l->match(LEX_ID);
-      if (l->tk!=')') l->match(',');
-  }
-  l->match(')');
+    l->match('(');
+    while (l->tk!=')') {
+        funcVar->addChildNoDup(l->tkStr);
+        l->match(LEX_ID);
+        if (l->tk!=')') l->match(',');
+    }
+    l->match(')');
 }
 
 void CTinyJS::addNative(const wString &funcDesc, JSCallback ptr, void *userdata) {
     CScriptLex *oldLex = l;
     l = new CScriptLex(socket, &printed, headerBuf, funcDesc);
-
+    
     CScriptVar *base = root;
-
+    
     l->match(LEX_R_FUNCTION);
     wString funcName = l->tkStr;
     l->match(LEX_ID);
     /* Check for dots, we might want to do something like function String.subwString ... */
     while (l->tk == '.') {
-      l->match('.');
-      CScriptVarLink *link = base->findChild(funcName);
-      // if it doesn't exist, make an object class
-      if (!link) link = base->addChild(funcName, new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT));
-      base = link->var;
-      funcName = l->tkStr;
-      l->match(LEX_ID);
+        l->match('.');
+        CScriptVarLink *link = base->findChild(funcName);
+        // if it doesn't exist, make an object class
+        if (!link) link = base->addChild(funcName, new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT));
+        base = link->var;
+        funcName = l->tkStr;
+        l->match(LEX_ID);
     }
-
+    
     CScriptVar *funcVar = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_FUNCTION | SCRIPTVAR_NATIVE);
     funcVar->setCallback(ptr, userdata);
     parseFunctionArguments(funcVar);
     delete l;
     l = oldLex;
-
+    
     base->addChild(funcName, funcVar);
 }
 
 CScriptVarLink *CTinyJS::parseFunctionDefinition() {
-  // actually parse a function...
-  l->match(LEX_R_FUNCTION);
-  wString funcName = TINYJS_TEMP_NAME;
-  /* we can have functions without names */
-  if (l->tk==LEX_ID) {
-    funcName = l->tkStr;
-    l->match(LEX_ID);
-  }
-  CScriptVarLink *funcVar = new CScriptVarLink(new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_FUNCTION), funcName);
-  parseFunctionArguments(funcVar->var);
-  int funcBegin = l->tokenStart;
-  bool noexecute = false;
-  block(noexecute);
-  funcVar->var->data = l->getSubString(funcBegin);
-  return funcVar;
+    // actually parse a function...
+    l->match(LEX_R_FUNCTION);
+    wString funcName = TINYJS_TEMP_NAME;
+    /* we can have functions without names */
+    if (l->tk==LEX_ID) {
+        funcName = l->tkStr;
+        l->match(LEX_ID);
+    }
+    CScriptVarLink *funcVar = new CScriptVarLink(new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_FUNCTION), funcName);
+    parseFunctionArguments(funcVar->var);
+    int funcBegin = l->tokenStart;
+    bool noexecute = false;
+    block(noexecute);
+    funcVar->var->data = l->getSubString(funcBegin);
+    return funcVar;
 }
 
 /** Handle a function call (assumes we've parsed the function name and we're
- * on the start bracket). 'parent' is the object that contains this method,
- * if there was one (otherwise it's just a normnal function).
- */
+* on the start bracket). 'parent' is the object that contains this method,
+* if there was one (otherwise it's just a normnal function).
+*/
 CScriptVarLink *CTinyJS::functionCall(bool &execute, CScriptVarLink *function, CScriptVar *parent) {
-  if (execute) {
-    if (!function->var->isFunction()) {
-        wString errorMsg = "Expecting '";
-        errorMsg = errorMsg + function->name + "' to be a function";
-        throw new CScriptException(errorMsg.c_str());
-    }
-    l->match('(');
-    // create a new symbol table entry for execution of this function
-    CScriptVar *functionRoot = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_FUNCTION);
-    if (parent)
-      functionRoot->addChildNoDup("this", parent);
-    // grab in all parameters
-    CScriptVarLink *v = function->var->firstChild;
-    while (v) {
-        CScriptVarLink *value = base(execute);
-        if (execute) {
-            if (value->var->isBasic()) {
-              // pass by value
-              functionRoot->addChild(v->name, value->var->deepCopy());
-            } else {
-              // pass by reference
-              functionRoot->addChild(v->name, value->var);
+    if (execute) {
+        if (!function->var->isFunction()) {
+            wString errorMsg = "Expecting '";
+            errorMsg = errorMsg + function->name + "' to be a function";
+            throw new CScriptException(errorMsg.c_str());
+        }
+        l->match('(');
+        // create a new symbol table entry for execution of this function
+        CScriptVar *functionRoot = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_FUNCTION);
+        if (parent)
+        functionRoot->addChildNoDup("this", parent);
+        // grab in all parameters
+        CScriptVarLink *v = function->var->firstChild;
+        while (v) {
+            CScriptVarLink *value = base(execute);
+            if (execute) {
+                if (value->var->isBasic()) {
+                    // pass by value
+                    functionRoot->addChild(v->name, value->var->deepCopy());
+                } else {
+                    // pass by reference
+                    functionRoot->addChild(v->name, value->var);
+                }
+            }
+            CLEAN(value);
+            if (l->tk!=')') l->match(',');
+            v = v->nextSibling;
+        }
+        l->match(')');
+        // setup a return variable
+        CScriptVarLink *returnVar = NULL;
+        // execute function!
+        // add the function's execute space to the symbol table so we can recurse
+        CScriptVarLink *returnVarLink = functionRoot->addChild(TINYJS_RETURN_VAR);
+        scopes.push_back(functionRoot);
+        #ifdef TINYJS_CALL_STACK
+        call_stack.push_back(function->name + " from " + l->getPosition());
+        #endif
+        
+        if (function->var->isNative()) {
+            ASSERT(function->var->jsCallback);
+            function->var->jsCallback(functionRoot, function->var->jsCallbackUserData);
+        } else {
+            /* we just want to execute the block, but something could
+            * have messed up and left us with the wrong ScriptLex, so
+            * we want to be careful here... */
+            CScriptException *exception = 0;
+            CScriptLex *oldLex = l;
+            CScriptLex *newLex = new CScriptLex(socket, &printed, headerBuf, function->var->getString());
+            l = newLex;
+            try {
+                block(execute);
+                // because return will probably have called this, and set execute to false
+                execute = true;
+            } catch (CScriptException *e) {
+                exception = e;
+            }
+            delete newLex;
+            l = oldLex;
+            
+            if (exception){
+                throw exception;
             }
         }
-        CLEAN(value);
-        if (l->tk!=')') l->match(',');
-        v = v->nextSibling;
-    }
-    l->match(')');
-    // setup a return variable
-    CScriptVarLink *returnVar = NULL;
-    // execute function!
-    // add the function's execute space to the symbol table so we can recurse
-    CScriptVarLink *returnVarLink = functionRoot->addChild(TINYJS_RETURN_VAR);
-    scopes.push_back(functionRoot);
-#ifdef TINYJS_CALL_STACK
-    call_stack.push_back(function->name + " from " + l->getPosition());
-#endif
-
-    if (function->var->isNative()) {
-        ASSERT(function->var->jsCallback);
-        function->var->jsCallback(functionRoot, function->var->jsCallbackUserData);
+        #ifdef TINYJS_CALL_STACK
+        if (!call_stack.empty()) call_stack.pop_back();
+        #endif
+        scopes.pop_back();
+        /* get the real return var before we remove it from our function */
+        returnVar = new CScriptVarLink(returnVarLink->var);
+        functionRoot->removeLink(returnVarLink);
+        delete functionRoot;
+        if (returnVar)
+        return returnVar;
+        else
+        return new CScriptVarLink(new CScriptVar());
     } else {
-        /* we just want to execute the block, but something could
-         * have messed up and left us with the wrong ScriptLex, so
-         * we want to be careful here... */
-        CScriptException *exception = 0;
-        CScriptLex *oldLex = l;
-        CScriptLex *newLex = new CScriptLex(socket, &printed, headerBuf, function->var->getString());
-        l = newLex;
-        try {
-          block(execute);
-          // because return will probably have called this, and set execute to false
-          execute = true;
-        } catch (CScriptException *e) {
-          exception = e;
+        // function, but not executing - just parse args and be done
+        l->match('(');
+        while (l->tk != ')') {
+            CScriptVarLink *value = base(execute);
+            CLEAN(value);
+            if (l->tk!=')') l->match(',');
         }
-        delete newLex;
-        l = oldLex;
-
-        if (exception)
-          throw exception;
+        l->match(')');
+        if (l->tk == '{') { // TODO: why is this here?
+            block(execute);
+        }
+        /* function will be a blank scriptvarlink if we're not executing,
+        * so just return it rather than an alloc/free */
+        return function;
     }
-#ifdef TINYJS_CALL_STACK
-    if (!call_stack.empty()) call_stack.pop_back();
-#endif
-    scopes.pop_back();
-    /* get the real return var before we remove it from our function */
-    returnVar = new CScriptVarLink(returnVarLink->var);
-    functionRoot->removeLink(returnVarLink);
-    delete functionRoot;
-    if (returnVar)
-      return returnVar;
-    else
-      return new CScriptVarLink(new CScriptVar());
-  } else {
-    // function, but not executing - just parse args and be done
-    l->match('(');
-    while (l->tk != ')') {
-      CScriptVarLink *value = base(execute);
-      CLEAN(value);
-      if (l->tk!=')') l->match(',');
-    }
-    l->match(')');
-    if (l->tk == '{') { // TODO: why is this here?
-      block(execute);
-    }
-    /* function will be a blank scriptvarlink if we're not executing,
-     * so just return it rather than an alloc/free */
-    return function;
-  }
 }
 
 CScriptVarLink *CTinyJS::factor(bool &execute) {
@@ -1557,11 +1624,11 @@ CScriptVarLink *CTinyJS::factor(bool &execute) {
         //printf("0x%08X for %s at %s\n", (unsigned int)a, l->tkStr.c_str(), l->getPosition().c_str());
         /* The parent if we're executing a method call */
         CScriptVar *parent = 0;
-
+        
         if (execute && !a) {
-          /* Variable doesn't exist! JavaScript says we should create it
-           * (we won't add it here. This is done in the assignment operator)*/
-          a = new CScriptVarLink(new CScriptVar(), l->tkStr);
+            /* Variable doesn't exist! JavaScript says we should create it
+            * (we won't add it here. This is done in the assignment operator)*/
+            a = new CScriptVarLink(new CScriptVar(), l->tkStr);
         }
         l->match(LEX_ID);
         while (l->tk=='(' || l->tk=='.' || l->tk=='[') {
@@ -1570,24 +1637,24 @@ CScriptVarLink *CTinyJS::factor(bool &execute) {
             } else if (l->tk == '.') { // ------------------------------------- Record Access
                 l->match('.');
                 if (execute) {
-                  const wString &name = l->tkStr;
-                  CScriptVarLink *child = a->var->findChild(name);
-                  if (!child) child = findInParentClasses(a->var, name);
-                  if (!child) {
-                    /* if we haven't found this defined yet, use the built-in
-                       'length' properly */
-                    if (a->var->isArray() && name == "length") {
-                      int l = a->var->getArrayLength();
-                      child = new CScriptVarLink(new CScriptVar(l));
-                    } else if (a->var->isString() && name == "length") {
-                      int l = a->var->getString().size();
-                      child = new CScriptVarLink(new CScriptVar(l));
-                    } else {
-                      child = a->var->addChild(name);
+                    const wString &name = l->tkStr;
+                    CScriptVarLink *child = a->var->findChild(name);
+                    if (!child) child = findInParentClasses(a->var, name);
+                    if (!child) {
+                        /* if we haven't found this defined yet, use the built-in
+                        'length' properly */
+                        if (a->var->isArray() && name == "length") {
+                            int l = a->var->getArrayLength();
+                            child = new CScriptVarLink(new CScriptVar(l));
+                        } else if (a->var->isString() && name == "length") {
+                            int l = a->var->getString().size();
+                            child = new CScriptVarLink(new CScriptVar(l));
+                        } else {
+                            child = a->var->addChild(name);
+                        }
                     }
-                  }
-                  parent = a->var;
-                  a = child;
+                    parent = a->var;
+                    a = child;
                 }
                 l->match(LEX_ID);
             } else if (l->tk == '[') { // ------------------------------------- Array Access
@@ -1595,9 +1662,9 @@ CScriptVarLink *CTinyJS::factor(bool &execute) {
                 CScriptVarLink *index = base(execute);
                 l->match(']');
                 if (execute) {
-                  CScriptVarLink *child = a->var->findChildOrCreate(index->var->getString());
-                  parent = a->var;
-                  a = child;
+                    CScriptVarLink *child = a->var->findChildOrCreate(index->var->getString());
+                    parent = a->var;
+                    a = child;
                 }
                 CLEAN(index);
             } else ASSERT(0);
@@ -1606,7 +1673,7 @@ CScriptVarLink *CTinyJS::factor(bool &execute) {
     }
     if (l->tk==LEX_INT || l->tk==LEX_FLOAT) {
         CScriptVar *a = new CScriptVar(l->tkStr,
-            ((l->tk==LEX_INT)?SCRIPTVAR_INTEGER:SCRIPTVAR_DOUBLE));
+        ((l->tk==LEX_INT)?SCRIPTVAR_INTEGER:SCRIPTVAR_DOUBLE));
         l->match(l->tk);
         return new CScriptVarLink(a);
     }
@@ -1619,85 +1686,85 @@ CScriptVarLink *CTinyJS::factor(bool &execute) {
         CScriptVar *contents = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT);
         /* JSON-style object definition */
         l->match('{');
-        while (l->tk != '}') {
-          wString id = l->tkStr;
-          // we only allow strings or IDs on the left hand side of an initialisation
-          if (l->tk==LEX_STR) l->match(LEX_STR);
-          else l->match(LEX_ID);
-          l->match(':');
-          if (execute) {
-            CScriptVarLink *a = base(execute);
-            contents->addChild(id, a->var);
-            CLEAN(a);
-          }
-          // no need to clean here, as it will definitely be used
-          if (l->tk != '}') l->match(',');
+            while (l->tk != '}') {
+                wString id = l->tkStr;
+                // we only allow strings or IDs on the left hand side of an initialisation
+                if (l->tk==LEX_STR) l->match(LEX_STR);
+                else l->match(LEX_ID);
+                l->match(':');
+                if (execute) {
+                    CScriptVarLink *a = base(execute);
+                    contents->addChild(id, a->var);
+                    CLEAN(a);
+                }
+                // no need to clean here, as it will definitely be used
+            if (l->tk != '}') l->match(',');
         }
-
-        l->match('}');
-        return new CScriptVarLink(contents);
-    }
-    if (l->tk=='[') {
-        CScriptVar *contents = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_ARRAY);
-        /* JSON-style array */
-        l->match('[');
-        int idx = 0;
-        while (l->tk != ']') {
-          if (execute) {
+        
+    l->match('}');
+    return new CScriptVarLink(contents);
+}
+if (l->tk=='[') {
+    CScriptVar *contents = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_ARRAY);
+    /* JSON-style array */
+    l->match('[');
+    int idx = 0;
+    while (l->tk != ']') {
+        if (execute) {
             char idx_str[16]; // big enough for 2^32
-            sprintf_s(idx_str, sizeof(idx_str), "%d",idx);
-
+            snprintf(idx_str, sizeof(idx_str), "%d",idx);
+            
             CScriptVarLink *a = base(execute);
             contents->addChild(idx_str, a->var);
             CLEAN(a);
-          }
-          // no need to clean here, as it will definitely be used
-          if (l->tk != ']') l->match(',');
-          idx++;
         }
-        l->match(']');
-        return new CScriptVarLink(contents);
+        // no need to clean here, as it will definitely be used
+        if (l->tk != ']') l->match(',');
+        idx++;
     }
-    if (l->tk==LEX_R_FUNCTION) {
-      CScriptVarLink *funcVar = parseFunctionDefinition();
-        if (funcVar->name != TINYJS_TEMP_NAME)
-          TRACE("Functions not defined at statement-level are not meant to have a name");
-        return funcVar;
-    }
-    if (l->tk==LEX_R_NEW) {
-      // new -> create a new object
-      l->match(LEX_R_NEW);
-      const wString &className = l->tkStr;
-      if (execute) {
+    l->match(']');
+    return new CScriptVarLink(contents);
+}
+if (l->tk==LEX_R_FUNCTION) {
+    CScriptVarLink *funcVar = parseFunctionDefinition();
+    if (funcVar->name != TINYJS_TEMP_NAME)
+    TRACE(socket,"Functions not defined at statement-level are not meant to have a name");
+    return funcVar;
+}
+if (l->tk==LEX_R_NEW) {
+    // new -> create a new object
+    l->match(LEX_R_NEW);
+    const wString &className = l->tkStr;
+    if (execute) {
         CScriptVarLink *objClassOrFunc = findInScopes(className);
         if (!objClassOrFunc) {
-          TRACE("%s is not a valid class name", className.c_str());
-          return new CScriptVarLink(new CScriptVar());
+            TRACE(socket,"%s is not a valid class name", className.c_str());
+            return new CScriptVarLink(new CScriptVar());
         }
         l->match(LEX_ID);
         CScriptVar *obj = new CScriptVar(TINYJS_BLANK_DATA, SCRIPTVAR_OBJECT);
         CScriptVarLink *objLink = new CScriptVarLink(obj);
         if (objClassOrFunc->var->isFunction()) {
-          CLEAN(functionCall(execute, objClassOrFunc, obj));
+            CLEAN(functionCall(execute, objClassOrFunc, obj));
         } else {
-          obj->addChild(TINYJS_PROTOTYPE_CLASS, objClassOrFunc->var);
-          if (l->tk == '(') {
-            l->match('(');
-            l->match(')');
-          }
+            obj->addChild(TINYJS_PROTOTYPE_CLASS, objClassOrFunc->var);
+            if (l->tk == '(') {
+                l->match('(');
+                l->match(')');
+            }
         }
         return objLink;
-      } else {
+    } else {
         l->match(LEX_ID);
         if (l->tk == '(') {
-          l->match('(');
-          l->match(')');
+            l->match('(');
+            l->match(')');
         }
-      }
     }
-    // Nothing we can do here... just hope it's the end...
-    l->match(LEX_EOF);
-    return 0;
+}
+// Nothing we can do here... just hope it's the end...
+l->match(LEX_EOF);
+return 0;
 }
 
 CScriptVarLink *CTinyJS::unary(bool &execute) {
@@ -1711,7 +1778,7 @@ CScriptVarLink *CTinyJS::unary(bool &execute) {
             CREATE_LINK(a, res);
         }
     } else
-        a = factor(execute);
+    a = factor(execute);
     return a;
 }
 
@@ -1729,7 +1796,7 @@ CScriptVarLink *CTinyJS::term(bool &execute) {
     }
     return a;
 }
-
+//表現(-a++とか)
 CScriptVarLink *CTinyJS::expression(bool &execute) {
     bool negate = false;
     if (l->tk=='-') {
@@ -1742,9 +1809,9 @@ CScriptVarLink *CTinyJS::expression(bool &execute) {
         CScriptVar *res = zero.mathsOp(a->var, '-');
         CREATE_LINK(a, res);
     }
-
+    
     while (l->tk=='+' || l->tk=='-' ||
-        l->tk==LEX_PLUSPLUS || l->tk==LEX_MINUSMINUS) {
+    l->tk==LEX_PLUSPLUS || l->tk==LEX_MINUSMINUS) {
         int op = l->tk;
         l->match(l->tk);
         if (op==LEX_PLUSPLUS || op==LEX_MINUSMINUS) {
@@ -1769,31 +1836,31 @@ CScriptVarLink *CTinyJS::expression(bool &execute) {
     }
     return a;
 }
-
+//シフト演算子
 CScriptVarLink *CTinyJS::shift(bool &execute) {
-  CScriptVarLink *a = expression(execute);
-  if (l->tk==LEX_LSHIFT || l->tk==LEX_RSHIFT || l->tk==LEX_RSHIFTUNSIGNED) {
-    int op = l->tk;
-    l->match(op);
-    CScriptVarLink *b = base(execute);
-    int shift = execute ? b->var->getInt() : 0;
-    CLEAN(b);
-    if (execute) {
-      if (op==LEX_LSHIFT) a->var->setInt(a->var->getInt() << shift);
-      if (op==LEX_RSHIFT) a->var->setInt(a->var->getInt() >> shift);
-      if (op==LEX_RSHIFTUNSIGNED) a->var->setInt(((unsigned int)a->var->getInt()) >> shift);
+    CScriptVarLink *a = expression(execute);
+    if (l->tk==LEX_LSHIFT || l->tk==LEX_RSHIFT || l->tk==LEX_RSHIFTUNSIGNED) {
+        int op = l->tk;
+        l->match(op);
+        CScriptVarLink *b = base(execute);
+        int shift = execute ? b->var->getInt() : 0;
+        CLEAN(b);
+        if (execute) {
+            if (op==LEX_LSHIFT) a->var->setInt(a->var->getInt() << shift);
+            if (op==LEX_RSHIFT) a->var->setInt(a->var->getInt() >> shift);
+            if (op==LEX_RSHIFTUNSIGNED) a->var->setInt(((unsigned int)a->var->getInt()) >> shift);
+        }
     }
-  }
-  return a;
+    return a;
 }
-
+//条件式
 CScriptVarLink *CTinyJS::condition(bool &execute) {
     CScriptVarLink *a = shift(execute);
     CScriptVarLink *b;
     while (l->tk==LEX_EQUAL || l->tk==LEX_NEQUAL ||
-           l->tk==LEX_TYPEEQUAL || l->tk==LEX_NTYPEEQUAL ||
-           l->tk==LEX_LEQUAL || l->tk==LEX_GEQUAL ||
-           l->tk=='<' || l->tk=='>') {
+    l->tk==LEX_TYPEEQUAL || l->tk==LEX_NTYPEEQUAL ||
+    l->tk==LEX_LEQUAL || l->tk==LEX_GEQUAL ||
+    l->tk=='<' || l->tk=='>') {
         int op = l->tk;
         l->match(l->tk);
         b = shift(execute);
@@ -1805,7 +1872,7 @@ CScriptVarLink *CTinyJS::condition(bool &execute) {
     }
     return a;
 }
-
+//結合条件式
 CScriptVarLink *CTinyJS::logic(bool &execute) {
     CScriptVarLink *a = condition(execute);
     CScriptVarLink *b;
@@ -1830,10 +1897,10 @@ CScriptVarLink *CTinyJS::logic(bool &execute) {
         b = condition(shortCircuit ? noexecute : execute);
         if (execute && !shortCircuit) {
             if (boolean) {
-              CScriptVar *newa = new CScriptVar(a->var->getBool());
-              CScriptVar *newb = new CScriptVar(b->var->getBool());
-              CREATE_LINK(a, newa);
-              CREATE_LINK(b, newb);
+                CScriptVar *newa = new CScriptVar(a->var->getBool());
+                CScriptVar *newb = new CScriptVar(b->var->getBool());
+                CREATE_LINK(a, newa);
+                CREATE_LINK(b, newb);
             }
             CScriptVar *res = a->var->mathsOp(b->var, op);
             CREATE_LINK(a, res);
@@ -1842,49 +1909,49 @@ CScriptVarLink *CTinyJS::logic(bool &execute) {
     }
     return a;
 }
-
+//三項演算子
 CScriptVarLink *CTinyJS::ternary(bool &execute) {
-  CScriptVarLink *lhs = logic(execute);
-  bool noexec = false;
-  if (l->tk=='?') {
-    l->match('?');
-    if (!execute) {
-      CLEAN(lhs);
-      CLEAN(base(noexec));
-      l->match(':');
-      CLEAN(base(noexec));
-    } else {
-      bool first = lhs->var->getBool();
-      CLEAN(lhs);
-      if (first) {
-        lhs = base(execute);
-        l->match(':');
-        CLEAN(base(noexec));
-      } else {
-        CLEAN(base(noexec));
-        l->match(':');
-        lhs = base(execute);
-      }
+    CScriptVarLink *lhs = logic(execute);
+    bool noexec = false;
+    if (l->tk=='?') {
+        l->match('?');
+        if (!execute) {
+            CLEAN(lhs);
+            CLEAN(base(noexec));
+            l->match(':');
+            CLEAN(base(noexec));
+        } else {
+            bool first = lhs->var->getBool();
+            CLEAN(lhs);
+            if (first) {
+                lhs = base(execute);
+                l->match(':');
+                CLEAN(base(noexec));
+            } else {
+                CLEAN(base(noexec));
+                l->match(':');
+                lhs = base(execute);
+            }
+        }
     }
-  }
-
-  return lhs;
+    
+    return lhs;
 }
-
+//a=1、a+=1、a-=等
 CScriptVarLink *CTinyJS::base(bool &execute) {
     CScriptVarLink *lhs = ternary(execute);
     if (l->tk=='=' || l->tk==LEX_PLUSEQUAL || l->tk==LEX_MINUSEQUAL) {
         /* If we're assigning to this and we don't have a parent,
-         * add it to the symbol table root as per JavaScript. */
+        * add it to the symbol table root as per JavaScript. */
         if (execute && !lhs->owned) {
-          if (lhs->name.length()>0) {
-            CScriptVarLink *realLhs = root->addChildNoDup(lhs->name, lhs->var);
-            CLEAN(lhs);
-            lhs = realLhs;
-          } else
-            TRACE("Trying to assign to an un-named type\n");
+            if (lhs->name.length()>0) {
+                CScriptVarLink *realLhs = root->addChildNoDup(lhs->name, lhs->var);
+                CLEAN(lhs);
+                lhs = realLhs;
+            } else
+            TRACE(socket,"Trying to assign to an un-named type\n");
         }
-
+        
         int op = l->tk;
         l->match(l->tk);
         CScriptVarLink *rhs = base(execute);
@@ -1903,71 +1970,98 @@ CScriptVarLink *CTinyJS::base(bool &execute) {
     }
     return lhs;
 }
-
-void CTinyJS::block(bool &execute) {
+//execute==trueならblock内を実施
+LEX_TYPES CTinyJS::block(bool &execute) {
+    LEX_TYPES ret=LEX_EOF;
     l->match('{');
-    if (execute) {
-      while (l->tk && l->tk!='}')
-        statement(execute);
-      l->match('}');
+        if (execute) {
+            while (l->tk && l->tk!='}'){
+                ret = statement(execute);
+                //この場合のみ末尾まで読み飛ばし
+                if( ret == LEX_R_BREAK || ret == LEX_R_CONTINUE){
+                    //末尾まで読み飛ばし
+                    int brackets = 1;
+                    while (l->tk && brackets) {
+                        if (l->tk == '{') brackets++;
+                        if (l->tk == '}') brackets--;
+                        l->match(l->tk);
+                    }
+                    return ret;
+                }
+            }
+        l->match('}');
     } else {
-      // fast skip of blocks
-      int brackets = 1;
-      while (l->tk && brackets) {
-        if (l->tk == '{') brackets++;
-        if (l->tk == '}') brackets--;
-        l->match(l->tk);
-      }
+        // fast skip of blocks
+        int brackets = 1;
+        while (l->tk && brackets) {
+            if (l->tk == '{') brackets++;
+            if (l->tk == '}') brackets--;
+            l->match(l->tk);
+        }
     }
-
+    return ret;
 }
-
-void CTinyJS::statement(bool &execute) {
+//記述
+LEX_TYPES  CTinyJS::statement(bool &execute) {
+    LEX_TYPES ret;
     if (l->tk==LEX_ID ||
-        l->tk==LEX_INT ||
-        l->tk==LEX_FLOAT ||
-        l->tk==LEX_STR ||
-        l->tk=='-') {
+    l->tk==LEX_INT ||
+    l->tk==LEX_FLOAT ||
+    l->tk==LEX_STR ||
+    l->tk=='-') {
         /* Execute a simple statement that only contains basic arithmetic... */
         CLEAN(base(execute));
         l->match(';');
     } else if (l->tk=='{') {
         /* A block of code */
-        block(execute);
+        ret = block(execute);
+        //単なるreturnでいいのでは？
+        if( ret == LEX_R_BREAK || ret == LEX_R_CONTINUE){
+            return ret;
+        }
     } else if (l->tk==';') {
         /* Empty statement - to allow things like ;;; */
         l->match(';');
+    } else if (l->tk==LEX_R_BREAK){
+        l->match(LEX_R_BREAK);
+        l->match(';');
+        return LEX_R_BREAK;
+    } else if (l->tk==LEX_R_CONTINUE){
+        l->match(LEX_R_CONTINUE);
+        l->match(';');
+        return LEX_R_CONTINUE;
     } else if (l->tk==LEX_R_VAR) {
         /* variable creation. TODO - we need a better way of parsing the left
-         * hand side. Maybe just have a flag called can_create_var that we
-         * set and then we parse as if we're doing a normal equals.*/
+        * hand side. Maybe just have a flag called can_create_var that we
+        * set and then we parse as if we're doing a normal equals.*/
         l->match(LEX_R_VAR);
         while (l->tk != ';') {
-          CScriptVarLink *a = 0;
-          if (execute)
+            CScriptVarLink *a = 0;
+            if (execute)
             a = scopes.back()->findChildOrCreate(l->tkStr);
-          l->match(LEX_ID);
-          // now do stuff defined with dots
-          while (l->tk == '.') {
-              l->match('.');
-              if (execute) {
-                  CScriptVarLink *lastA = a;
-                  a = lastA->var->findChildOrCreate(l->tkStr);
-              }
-              l->match(LEX_ID);
-          }
-          // sort out initialiser
-          if (l->tk == '=') {
-              l->match('=');
-              CScriptVarLink *var = base(execute);
-              if (execute)
-                  a->replaceWith(var);
-              CLEAN(var);
-          }
-          if (l->tk != ';')
+            l->match(LEX_ID);
+            // now do stuff defined with dots
+            while (l->tk == '.') {
+                l->match('.');
+                if (execute) {
+                    CScriptVarLink *lastA = a;
+                    a = lastA->var->findChildOrCreate(l->tkStr);
+                }
+                l->match(LEX_ID);
+            }
+            // sort out initialiser
+            if (l->tk == '=') {
+                l->match('=');
+                CScriptVarLink *var = base(execute);
+                if (execute)
+                a->replaceWith(var);
+                CLEAN(var);
+            }
+            if (l->tk != ';')
             l->match(',');
-        }       
+        }
         l->match(';');
+        //IF
     } else if (l->tk==LEX_R_IF) {
         l->match(LEX_R_IF);
         l->match('(');
@@ -1975,12 +2069,17 @@ void CTinyJS::statement(bool &execute) {
         l->match(')');
         bool cond = execute && var->var->getBool();
         CLEAN(var);
-        bool noexecute = false; // because we need to be abl;e to write to it
-        statement(cond ? execute : noexecute);
+        bool noexecute = false; // because we need to be able to write to it
+        ret = statement(cond ? execute : noexecute);
+        if( ret == LEX_R_BREAK || ret == LEX_R_CONTINUE){
+            return ret;
+        }
         if (l->tk==LEX_R_ELSE) {
             l->match(LEX_R_ELSE);
-            statement(cond ? noexecute : execute);
+            //break continue対応. LEX_R_BREAK,LEX_R_CONTINUE以外ではLEX_EOFがかえる
+            return statement(cond ? noexecute : execute);
         }
+        //WHILE
     } else if (l->tk==LEX_R_WHILE) {
         // We do repetition by pulling out the wString representing our statement
         // there's definitely some opportunity for optimisation here
@@ -1994,7 +2093,12 @@ void CTinyJS::statement(bool &execute) {
         CScriptLex *whileCond = l->getSubLex(whileCondStart);
         l->match(')');
         int whileBodyStart = l->tokenStart;
-        statement(loopCond ? execute : noexecute);
+        ret = statement(loopCond ? execute : noexecute);
+        if( ret != LEX_EOF ){
+            wString errorString;
+            errorString.sprintf( "Syntax error %s at %s",l->getTokenStr(ret).c_str(),l->getPosition(l->tokenStart).c_str());
+            throw new CScriptException(errorString.c_str());
+        }
         CScriptLex *whileBody = l->getSubLex(whileBodyStart);
         CScriptLex *oldLex = l;
         int loopCount = TINYJS_LOOP_MAX_ITERATIONS;
@@ -2007,22 +2111,33 @@ void CTinyJS::statement(bool &execute) {
             if (loopCond) {
                 whileBody->reset();
                 l = whileBody;
-                statement(execute);
+                ret = statement(execute);
+                if( ret == LEX_R_BREAK ){
+                    break;
+                }
+                if( ret == LEX_R_CONTINUE ){
+                    continue;
+                }
             }
         }
         l = oldLex;
         delete whileCond;
         delete whileBody;
-
+        
         if (loopCount<=0) {
-            root->trace();
-            TRACE("WHILE Loop exceeded %d iterations at %s\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
+            root->trace(socket);
+            TRACE(socket,"WHILE Loop exceeded %d iterations at %s\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
             throw new CScriptException("LOOP_ERROR");
         }
     } else if (l->tk==LEX_R_FOR) {
         l->match(LEX_R_FOR);
         l->match('(');
-        statement(execute); // initialisation
+        ret = statement(execute); // initialisation
+        if( ret > LEX_EOF ){
+            wString errorString;
+            errorString.sprintf( "Syntax error %s at %s",l->getTokenStr(ret).c_str(),l->getPosition(l->tokenStart).c_str());
+            throw new CScriptException(errorString.c_str());
+        }
         //l->match(';');
         int forCondStart = l->tokenStart;
         bool noexecute = false;
@@ -2036,7 +2151,12 @@ void CTinyJS::statement(bool &execute) {
         CScriptLex *forIter = l->getSubLex(forIterStart);
         l->match(')');
         int forBodyStart = l->tokenStart;
-        statement(loopCond ? execute : noexecute);
+        ret = statement(loopCond ? execute : noexecute);
+        if( ret == LEX_R_BREAK || ret == LEX_R_CONTINUE ){
+            wString errorString;
+            errorString.sprintf( "Syntax error %s at %s",l->getTokenStr(ret).c_str(),l->getPosition(l->tokenStart).c_str());
+            throw new CScriptException(errorString.c_str());
+        }
         CScriptLex *forBody = l->getSubLex(forBodyStart);
         CScriptLex *oldLex = l;
         if (loopCond) {
@@ -2054,7 +2174,13 @@ void CTinyJS::statement(bool &execute) {
             if (execute && loopCond) {
                 forBody->reset();
                 l = forBody;
-                statement(execute);
+                ret = statement(execute);
+                if( ret == LEX_R_BREAK ){
+                    break;
+                }
+                if( ret == LEX_R_CONTINUE ){
+                    continue;
+                }
             }
             if (execute && loopCond) {
                 forIter->reset();
@@ -2067,35 +2193,38 @@ void CTinyJS::statement(bool &execute) {
         delete forIter;
         delete forBody;
         if (loopCount<=0) {
-            root->trace();
-            TRACE("FOR Loop exceeded %d iterations at %s\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
+            root->trace(socket);
+            TRACE(socket,"FOR Loop exceeded %d iterations at %s\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
             throw new CScriptException("LOOP_ERROR");
         }
     } else if (l->tk==LEX_R_RETURN) {
         l->match(LEX_R_RETURN);
         CScriptVarLink *result = 0;
         if (l->tk != ';')
-          result = base(execute);
+        result = base(execute);
         if (execute) {
-          CScriptVarLink *resultVar = scopes.back()->findChild(TINYJS_RETURN_VAR);
-          if (resultVar)
+            CScriptVarLink *resultVar = scopes.back()->findChild(TINYJS_RETURN_VAR);
+            if (resultVar)
             resultVar->replaceWith(result);
-          else
-            TRACE("RETURN statement, but not in a function.\n");
-          execute = false;
+            else
+            TRACE(socket,"RETURN statement, but not in a function.\n");
+            execute = false;
         }
         CLEAN(result);
         l->match(';');
     } else if (l->tk==LEX_R_FUNCTION) {
         CScriptVarLink *funcVar = parseFunctionDefinition();
         if (execute) {
-          if (funcVar->name == TINYJS_TEMP_NAME)
-            TRACE("Functions defined at statement-level are meant to have a name\n");
-          else
+            if (funcVar->name == TINYJS_TEMP_NAME)
+            TRACE(socket,"Functions defined at statement-level are meant to have a name\n");
+            else
             scopes.back()->addChildNoDup(funcVar->name, funcVar->var);
         }
         CLEAN(funcVar);
-    } else l->match(LEX_EOF);
+    } else {
+        l->match(LEX_EOF);
+    }
+    return LEX_EOF;
 }
 
 /// Get the given variable specified by a path (var1.var2.etc), or return 0
@@ -2103,7 +2232,7 @@ CScriptVar *CTinyJS::getScriptVariable(const wString &path) {
     // traverse path
     size_t prevIdx = 0;
     size_t thisIdx = path.find('.');
-    if (thisIdx == string::npos) thisIdx = path.length();
+    if (thisIdx == wString::npos) thisIdx = path.length();
     CScriptVar *var = root;
     while (var && prevIdx<path.length()) {
         wString el = path.substr(prevIdx, thisIdx-prevIdx);
@@ -2111,7 +2240,7 @@ CScriptVar *CTinyJS::getScriptVariable(const wString &path) {
         var = varl?varl->var:0;
         prevIdx = thisIdx+1;
         thisIdx = path.find('.', prevIdx);
-        if (thisIdx == string::npos) thisIdx = path.length();
+        if (thisIdx == wString::npos) thisIdx = path.length();
     }
     return var;
 }
@@ -2121,9 +2250,9 @@ const wString *CTinyJS::getVariable(const wString &path) {
     CScriptVar *var = getScriptVariable(path);
     // return result
     if (var)
-        return &var->getString();
+    return &var->getString();
     else
-        return 0;
+    return 0;
 }
 
 /// set the value of the given variable, return trur if it exists and gets set
@@ -2132,25 +2261,25 @@ bool CTinyJS::setVariable(const wString &path, const wString &varData) {
     // return result
     if (var) {
         if (var->isInt())
-            var->setInt((int)strtol(varData.c_str(),0,0));
+        var->setInt((int)strtol(varData.c_str(),0,0));
         else if (var->isDouble())
-            var->setDouble(strtod(varData.c_str(),0));
+        var->setDouble(strtod(varData.c_str(),0));
         else
-            var->setString(varData.c_str());
+        var->setString(varData.c_str());
         return true;
-    }    
+    }
     else
-        return false;
+    return false;
 }
 
 /// Finds a child, looking recursively up the scopes
 CScriptVarLink *CTinyJS::findInScopes(const wString &childName) {
     for (int s=scopes.size()-1;s>=0;s--) {
-      CScriptVarLink *v = scopes[s]->findChild(childName);
-      if (v) return v;
+        CScriptVarLink *v = scopes[s]->findChild(childName);
+        if (v) return v;
     }
     return NULL;
-
+    
 }
 
 /// Look up in any parent classes of the given object
@@ -2158,21 +2287,21 @@ CScriptVarLink *CTinyJS::findInParentClasses(CScriptVar *object, const wString &
     // Look for links to actual parent classes
     CScriptVarLink *parentClass = object->findChild(TINYJS_PROTOTYPE_CLASS);
     while (parentClass) {
-      CScriptVarLink *implementation = parentClass->var->findChild(name);
-      if (implementation) return implementation;
-      parentClass = parentClass->var->findChild(TINYJS_PROTOTYPE_CLASS);
+        CScriptVarLink *implementation = parentClass->var->findChild(name);
+        if (implementation) return implementation;
+        parentClass = parentClass->var->findChild(TINYJS_PROTOTYPE_CLASS);
     }
     // else fake it for strings and finally objects
     if (object->isString()) {
-      CScriptVarLink *implementation = stringClass->findChild(name);
-      if (implementation) return implementation;
+        CScriptVarLink *implementation = stringClass->findChild(name);
+        if (implementation) return implementation;
     }
     if (object->isArray()) {
-      CScriptVarLink *implementation = arrayClass->findChild(name);
-      if (implementation) return implementation;
+        CScriptVarLink *implementation = arrayClass->findChild(name);
+        if (implementation) return implementation;
     }
     CScriptVarLink *implementation = objectClass->findChild(name);
     if (implementation) return implementation;
-
+    
     return 0;
 }

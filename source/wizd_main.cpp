@@ -10,44 +10,73 @@
 //	すべて自己責任でおながいしまつ。
 //  このソフトについてVertexLinkに問い合わせないでください。
 // ==========================================================================
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <pwd.h>
-#include <grp.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <errno.h>
-#include <cerrno>
-#include "wizd.h"
-#include "wizd_String.h"
+#define MAINVAR
+#include  <stdio.h>
+#include  <string.h>
+#include  <stdlib.h>
+#include  <signal.h>
+#include  <sys/types.h>
+
+#ifdef linux
+#include  <unistd.h>
+#include  <pwd.h>
+#include  <grp.h>
+#include  <sys/wait.h>
+#include  <regex.h>
+#include  <errno.h>
+#include  <cerrno>
+char Application[256];
+#else
+#include  <windows.h>
+#include  <regexp.h>
+#include  "unit1.h"
+#endif
+#include  "wizd.h"
+#include  "wizd_tools.h"
+#include  "wizd_String.h"
+#include  "const.h"
+
 static void print_help(void);
+#ifdef linux
 static void daemon_init(void);
-static void set_user_id(unsigned char *user, unsigned char *group);
+static void set_user_id(char *user, char *group);
 static void setup_SIGCHLD(void);
 static void catch_SIGCHLD(int signo);
-extern int child_count;
+#endif
+// カレントディレクトリ名を持つ
+wString     curdir;
+wString     current_dir;       //現在のディレクトリ
+
+
 // **************************************************************************
 // * Main Program
 // **************************************************************************
+#ifdef linux
 int main(int argc, char *argv[])
+#else
+int wizdmain(int argc, char *argv[])
+#endif
 {
-    int i;
-    //pid_t	pid;
     char flag_daemon = FALSE;
-    printf("%s  start.\n", SERVER_NAME);
+    /* スレッド用パラメータ */
+    #ifdef linux
+    pthread_t Handle;
+    strcpy( Application, argv[0] );
+    #else
+    HANDLE handle;
+    DWORD dwExCode;
+    #endif
+    DWORD id;
+
     // =============================================
     // 各種初期化
     // =============================================
+    Initialize();
     global_param_init();
-    //wString::wStringInit();
     // =============================================
     // オプションチェック
     // =============================================
-    for (i=1; i<argc; i++)
-    {
+    for (int i=1; i<argc; i++){
         // ----------------------------------------------------
         // -h, --help, -v, --version:  ヘルプメッセージ
         // ----------------------------------------------------
@@ -57,12 +86,13 @@ int main(int argc, char *argv[])
         (strcmp(argv[i], "--version")	== 0) 		)
         {
             print_help();
-#ifdef linux
+            #ifdef linux
             printf("abort by main\n");
             abort();
-#else
+            #else
+            WSACleanup();
             ExitThread(TRUE);
-#endif
+            #endif
             return 0;
         }
         if (strcmp(argv[i], "-d") 		== 0)
@@ -79,16 +109,19 @@ int main(int argc, char *argv[])
     {
         global_param.flag_daemon = TRUE;
     }
+    #ifdef linux
     // ======================
     // = SetUID 実行
     // ======================
     set_user_id(global_param.exec_user, global_param.exec_group);
+    #endif
     // =======================
     // Debug Log 出力開始
     // =======================
-    if ( global_param.flag_debug_log_output == TRUE )
-    {
+    if ( global_param.flag_debug_log_output == TRUE ){
+    #ifdef linux
         printf("debug log output start..\n");
+    #endif
         debug_log_initialize(global_param.debug_log_filename);
         debug_log_output("\n%s boot up.", SERVER_NAME );
         debug_log_output("debug log output start..\n");
@@ -97,26 +130,27 @@ int main(int argc, char *argv[])
     // =================
     // daemon化する。
     // =================
-#ifdef linux
-    if ( global_param.flag_daemon == TRUE )
-    {
+    #ifdef linux
+    if ( global_param.flag_daemon == TRUE ){
         printf("Daemoning....\n");
         daemon_init();
     }else{
         signal(SIGPIPE, SIG_IGN);
         signal(SIGCHLD, SIG_IGN);
     }
-#endif
     // ==========================================
     // 子プロセスシグナル受信準備。forkに必要
     // ==========================================
     setup_SIGCHLD();
+    #endif
     // ==================================
     // Server自動検出を使うばあい、
     // Server Detect部をForkして実行
     // ==================================
-    if ( global_param.flag_auto_detect == TRUE )
-    {
+    if ( global_param.flag_auto_detect == TRUE ){
+        
+        // 以下子プロセス部
+        #ifdef linux
         int pid = fork();
         if ( pid < 0 ) // fork失敗チェック
         {
@@ -126,17 +160,75 @@ int main(int argc, char *argv[])
         if (pid == 0)
         {
             // 以下子プロセス部
-            server_detect();
+            server_detect(NULL);
             exit ( 0 );
-        }
+        }        
+        #else
+        //かえって遅い気がします。
+        handle = 0;
+        handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE) server_detect , NULL, NULL , &id);
+        //標準以下
+        //SetThreadPriority(handle,THREAD_PRIORITY_BELOW_NORMAL);
+        #endif
     }
+    
+    Ready_flag = 1;
+    
     // =======================
     // HTTP Server仕事開始
     // =======================
-    wString::wStringInit();
     server_listen();
-    printf("%s  end.\n", SERVER_NAME);
-    wString::wStringEnd();
+    #ifndef linux
+    //server_detect待ち
+    if( WaitForSingleObject( handle , INFINITE ) != WAIT_OBJECT_0 ){
+        TerminateThread( handle , id );
+        while( 1 ){
+            GetExitCodeThread( handle, &dwExCode );
+            if( dwExCode != STILL_ACTIVE ){
+                break;
+            }
+        }
+    }
+    CloseHandle( handle );
+    //wString::wStringEnd();
+    ExitThread(TRUE);
+    #else
+    detect_finalize();
+    #endif
+    return 0;
+}
+//アクセスできたら０、できなかったら-1
+int Initialize()
+{
+    wString::wStringInit();
+    #ifdef linux
+    wString tmp(Application);
+    curdir = wString::ExtractFileDir( tmp ).Trim();
+    #else
+    WSADATA wsa;
+    WORD version = MAKEWORD(2, 0);
+    WSAStartup(version, &wsa);
+    curdir = wString::ExtractFileDir( wString(wString::LinuxFileName(Application->ExeName.c_str())) ).Trim();
+    #endif
+    //curdir.Trim();
+    current_dir = curdir;
+    //ショートカットから呼ばれたときのパッチ。だましですよー
+    #ifdef linux
+    chdir(current_dir.c_str() );
+    #else
+    SetCurrentDir( current_dir.c_str() );
+    #endif
+    /* TODO : work_rootに従って削除すること */
+    if( ! wString::DirectoryExists(curdir+DELIMITER"work") ){
+        wString::CreateDir(current_dir+DELIMITER"work");
+    }else{
+        //workの中のファイルを消す
+        wString list;
+        list = wString::EnumFolder(current_dir+DELIMITER"work");
+        for( int i = 0 ; i < list.Count() ; i++ ){
+            wString::DeleteFile( list.GetListString(i) );
+        }
+    }
     return 0;
 }
 // **************************************************************************
@@ -144,11 +236,13 @@ int main(int argc, char *argv[])
 // **************************************************************************
 static void print_help(void)
 {
+    #ifdef linux
     printf("%s -- %s\n\n", SERVER_NAME, SERVER_DETAIL);
     printf("Usase: wizd [options]\n");
     printf("Options:\n");
     printf(" -h, --help\tprint this message.\n");
     printf("\n");
+    #endif
 }
 #ifdef linux
 // **************************************************************************
@@ -158,9 +252,9 @@ static void daemon_init(void)
 {
     int       pid;
     // 標準入出力／標準エラー出力を閉じる
-    //fclose(stdin);
-    //fclose(stdout);
-    //fclose(stderr);
+    fclose(stdin);
+    fclose(stdout);
+    fclose(stderr);
     pid = fork() ;
     if ( pid != 0 ){
         exit ( 0 );
@@ -174,11 +268,10 @@ static void daemon_init(void)
     }
     return;
 }
-#endif
 // **************************************************************************
 // 指定されたUID/GIDに変更する。root起動されたときのみ有効
 // **************************************************************************
-static void set_user_id(unsigned char *user, unsigned char *group)
+static void set_user_id(char *user, char *group)
 {
     struct passwd 	*user_passwd;
     struct group 	*user_group;
@@ -242,10 +335,10 @@ static void catch_SIGCHLD(int signo)
         {
             break;
         }
-        if (child_count > 0) child_count--;
-        debug_log_output("catch_SIGCHILD waitpid()=%d, child_count = %d\n"
-        , child_pid, child_count);
+        //debug_log_output("catch_SIGCHILD waitpid()=%d, child_count = %d\n"
+        //, child_pid, child_count);
     }
     debug_log_output("catch SIGCHLD end.\n");
     return;
 }
+#endif
